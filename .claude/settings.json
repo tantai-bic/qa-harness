@@ -1,0 +1,102 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/EVE-LT-Biz-NguyenTan/.claude/**)"
+    ]
+  },
+  "enabledPlugins": {},
+  "disabledMcpjsonServers": [
+    "claude_ai_ClickUp",
+    "claude_ai_Figma",
+    "claude_ai_Gamma",
+    "claude_ai_Gmail",
+    "claude_ai_Google_Calendar",
+    "claude_ai_Google_Drive",
+    "claude_ai_Miro",
+    "claude_ai_Supabase",
+    "claude_ai_Vercel",
+    "claude_ai_Context7"
+  ],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-logger-init.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/enforce-roadmap-reading.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/orchestrate-test-automation.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/preload-qa-context.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/enforce-bmad-output-consistency.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/langfuse-score-detector.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/enforce-test-quality-checklist.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/enforce-read-dedup.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-logger-tool.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-stop.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-cleanup.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
