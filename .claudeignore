@@ -1,0 +1,7 @@
+# .claudeignore hoặc .gitignore tại thư mục gốc của plugin
+
+CLAUDE.md
+MEMORY.md
+.claude/
+tests/
+\*.log

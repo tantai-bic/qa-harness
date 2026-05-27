@@ -1,23 +1,21 @@
 {
-  "permissions": {
-    "allow": [
-      "Read(//c/Users/EVE-LT-Biz-NguyenTan/.claude/**)"
-    ]
+  "enabledPlugins": {
+    "playwright@claude-plugins-official": true
   },
-  "enabledPlugins": {},
-  "disabledMcpjsonServers": [
-    "claude_ai_ClickUp",
-    "claude_ai_Figma",
-    "claude_ai_Gamma",
-    "claude_ai_Gmail",
-    "claude_ai_Google_Calendar",
-    "claude_ai_Google_Drive",
-    "claude_ai_Miro",
-    "claude_ai_Supabase",
-    "claude_ai_Vercel",
-    "claude_ai_Context7"
-  ],
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [],
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
@@ -27,19 +25,19 @@
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/enforce-roadmap-reading.sh"
+            "command": "bash hooks/enforce-roadmap-reading.sh"
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/orchestrate-test-automation.sh"
+            "command": "bash hooks/orchestrate-test-automation.sh"
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/preload-qa-context.sh"
+            "command": "bash hooks/preload-qa-context.sh"
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/enforce-bmad-output-consistency.sh"
+            "command": "bash hooks/enforce-bmad-output-consistency.sh"
           },
           {
             "type": "command",
@@ -54,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/enforce-test-quality-checklist.sh"
+            "command": "bash hooks/enforce-test-quality-checklist.sh"
           }
         ]
       },
@@ -63,7 +61,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/enforce-read-dedup.sh"
+            "command": "bash hooks/enforce-read-dedup.sh"
           }
         ]
       }

@@ -56,3 +56,10 @@ tmpclaude-*-cwd
 # Figma export artifacts (local only)
 figma-export/
 docs/sprint_10/epic-03.2-poll-tactic/figma-export/
+
+# Plugin runtime state (langfuse + spans + session map)
+hooks/.current-log
+hooks/.session-map/
+hooks/.langfuse-queue/
+hooks/.langfuse-cursor/
+hooks/.hook-spans-pending/
