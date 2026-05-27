@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+
+# Test Results
+test-results/
+playwright-report/
+playwright/.cache/
+launch-uuid.txt
+pw-report-extract/
+pw-report-tmp.zip
+.report-portal/
+rplaunch-*.tmp
+rp-launch-uuid-*.tmp
+
+# Environment
+.env
+.env.local
+
+# Playwright
+playwright/.auth/
+.playwright-mcp/
+*.mp4
+*.webm
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp test assets
+assets/
+
+# Large test fixtures (generated at runtime)
+tests/fixtures/media/oversized-file.jpg
+
+# Logs
+*.log
+npm-debug.log*
+
+# Claude Code
+tmpclaude-*-cwd
+.claude/settings.local.json
+.claude/session-logs/
+.claude/hooks/.current-log
+.claude/hooks/.session-map/
+.claude/hooks/.langfuse-queue/
+.claude/hooks/.langfuse-cursor/
+.claude/hooks/.hook-spans-pending/
+
+.local/
+.auth/
+# Figma export artifacts (local only)
+figma-export/
+docs/sprint_10/epic-03.2-poll-tactic/figma-export/
