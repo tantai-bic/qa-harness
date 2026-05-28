@@ -94,6 +94,19 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-logger-tool.sh\""
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run-test-mark-fixme.sh\"",
+            "async": true,
+            "asyncRewake": true,
+            "timeout": 120,
+            "statusMessage": "Running test, marking fail with .fixme()..."
+          }
+        ]
       }
     ],
     "Stop": [

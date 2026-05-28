@@ -91,6 +91,56 @@ fi
 
 [[ $TRIGGERED -eq 0 ]] && exit 0   # SPAN_DECISION default "skip"
 
+# ─── Downgrade: TEXT-ONLY edit detection ────────────────────────────────────
+# Phân biệt CODE_LOGIC (write/add/implement test) vs TEXT_ONLY (rename, fix typo,
+# update message/string/label). TEXT_ONLY → skip full skills load, chỉ inject
+# nhắc giữ tags + structure.
+#
+# LOGIC keyword (full orchestration):
+#   viết/tạo/thêm test, write/create/generate/add test, implement, scaffold,
+#   assertion, kịch bản, test case, new test, refactor logic
+#
+# TEXT_ONLY keyword (downgrade, KHÔNG load skills):
+#   đổi/sửa tên, đổi text/string/label/tiêu đề/message, rename, fix typo,
+#   update text/string/label/title/message/wording, change wording, reword
+TEXT_ONLY=0
+LOGIC_KW=0
+
+# LOGIC signals
+if echo "$LC_PROMPT" | grep -qE '(viết|tạo|thêm|add|create|generate|write|implement|scaffold|làm|automate).*(test|spec|case|assertion|kịch bản)|new test|test mới|spec mới|refactor (test|logic|assertion)'; then
+  LOGIC_KW=1
+fi
+
+# TEXT-ONLY signals (chỉ count nếu KHÔNG có logic keyword)
+if [[ $LOGIC_KW -eq 0 ]]; then
+  if echo "$LC_PROMPT" | grep -qE '(đổi|sửa|update|fix|rename|change|reword)\s*([a-zà-ỹ ]+\s)?(tên|text|string|label|tiêu đề|message|describe|title|typo|wording|tên test|tên describe|tên describe)'; then
+    TEXT_ONLY=1
+  fi
+fi
+
+if [[ $TEXT_ONLY -eq 1 ]]; then
+  cat <<EOF
+✏️ TEXT-ONLY EDIT detected — SKIP full QA skills orchestration (chỉ sửa text/string/label, không thay đổi logic).
+
+Lưu ý BẮT BUỘC khi edit text trên test spec:
+  • GIỮ NGUYÊN tags (@P0/@P1/@P2/@P3, @BE/@FE, @Smoke/@Sanity/@Regression/@Function/@UI/@UX) — KHÔNG xoá khi rename describe/test
+  • GIỮ NGUYÊN import structure (\`@src/*.{service,factory,fixture,helper}\`)
+  • GIỮ NGUYÊN assertion logic — chỉ string/label được phép thay đổi
+  • Không cần load qa-test-case skills (boundary, equivalence, decision-table) vì không sinh test mới
+  • enforce-spec-tags hook vẫn fire → nếu tag bị xoá nhầm sẽ block
+
+Nếu thực sự cần thay đổi LOGIC test → re-prompt với từ khoá rõ:
+  "viết test mới", "thêm assertion", "add test case", "refactor assertion logic", ...
+
+Bypass: SKIP_TEST_ORCHESTRATION=1 (per-hook) hoặc SKIP_HOOKS=1 (master).
+EOF
+  SPAN_DECISION="inject"
+  SPAN_BYTES=1
+  SPAN_DETAIL="text_only_downgrade"
+  source "$(dirname "$0")/_hook-span-emit.sh" 2>/dev/null || true
+  exit 0
+fi
+
 # ─── Module hint extraction (generic) ───────────────────────────────────────
 # Tìm hint từ pattern phổ biến: "module X", "feature X", "viết test X",
 # "X.spec.ts", "tests/.../X/...". Consumer có thể inject keyword list cụ thể
