@@ -4,24 +4,11 @@
   "owner": {
     "name": "TanTai-BIC"
   },
-  "metadata": {
-    "description": "Marketplace cho bmad-harness-plugin — Claude Code plugin tái sử dụng cho Playwright + TypeScript QA automation.",
-    "version": "1.0.1"
-  },
   "plugins": [
     {
       "name": "bmad-harness-plugin",
-      "source": ".",
-      "description": "BMAD QA Harness — đóng khung Claude vào quy trình QA-driven chuẩn hoá (agents + hooks + skills + commands).",
-      "version": "1.0.1",
-      "category": "qa-automation",
-      "tags": [
-        "playwright",
-        "typescript",
-        "test-automation",
-        "bmad",
-        "qa-harness"
-      ]
+      "source": "./",
+      "description": "BMAD QA Harness — đóng khung Claude vào quy trình QA-driven chuẩn hoá (agents + hooks + skills + commands)."
     }
   ]
 }
