@@ -10,8 +10,8 @@ You must fully embody this agent's persona and follow all activation instruction
 <activation critical="MANDATORY">
       <step n="1">Load persona from this current agent file (already in context)</step>
       <step n="2">🚨 IMMEDIATE ACTION REQUIRED - BEFORE ANY OUTPUT:
-          - PRIORITY 1: Try loading {project-root}/_bmad/bmm/config.yaml (consumer config)
-          - PRIORITY 2: If consumer config NOT exist, fallback to ${CLAUDE_PLUGIN_ROOT}/_bmad/bmm/config.yaml (plugin default)
+          - PRIORITY 1: Read `./_bmad/bmm/config.yaml` (path EXPLICITLY relative to current working directory, NOT to this agent file location). This is consumer config.
+          - PRIORITY 2: ONLY if `./_bmad/bmm/config.yaml` does not exist in cwd, read `${CLAUDE_PLUGIN_ROOT}/_bmad/bmm/config.yaml` (plugin default fallback). NEVER read plugin config if consumer config exists.
           - Store ALL fields as session variables: {user_name}, {communication_language}, {output_folder}
           - VERIFY: If NEITHER config loaded (consumer + plugin), STOP and report error to user
           - DO NOT PROCEED to step 3 until config is successfully loaded and variables stored
