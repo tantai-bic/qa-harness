@@ -76,7 +76,7 @@ try { fs.utimesSync(mapFile, now, now); } catch (e) { /* skip */ }
 
 // ─── Langfuse span enqueue (luôn enqueue → archive local + queue retry) ───
 try {
-  const lf = require(path.join(cwd, ".claude", "hooks", "langfuse-helper.js"));
+  const lf = require(process.env.CLAUDE_PLUGIN_ROOT ? path.join(process.env.CLAUDE_PLUGIN_ROOT, "hooks", "langfuse-helper.js") : path.join(cwd, ".claude", "hooks", "langfuse-helper.js"));
   // Derive traceId from active log file: prompt-NNN-*.log → "<safeSession>-NNN"
   const m = path.basename(logFile).match(/^prompt-(\d{3})-/);
   const idx = m ? m[1] : "000";

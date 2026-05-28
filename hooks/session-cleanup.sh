@@ -45,7 +45,7 @@ function finish() {
 
 // Langfuse synchronous flush — block tới khi xong (hoặc HTTP timeout 10s)
 try {
-  const lf = require(path.join(cwd, ".claude", "hooks", "langfuse-helper.js"));
+  const lf = require(process.env.CLAUDE_PLUGIN_ROOT ? path.join(process.env.CLAUDE_PLUGIN_ROOT, "hooks", "langfuse-helper.js") : path.join(cwd, ".claude", "hooks", "langfuse-helper.js"));
   if (lf.isConfigured()) {
     lf.flushSync(sessionId, () => finish());
   } else {

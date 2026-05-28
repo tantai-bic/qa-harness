@@ -151,7 +151,7 @@ const traceName = `${sourceIcon} session-start · ${source}`;
 
 // ─── Enqueue Langfuse trace (luôn enqueue → local archive + queue retry) ───
 try {
-  const lf = require(path.join(cwd, ".claude", "hooks", "langfuse-helper.js"));
+  const lf = require(process.env.CLAUDE_PLUGIN_ROOT ? path.join(process.env.CLAUDE_PLUGIN_ROOT, "hooks", "langfuse-helper.js") : path.join(cwd, ".claude", "hooks", "langfuse-helper.js"));
   lf.enqueueTrace(sessionId, {
     traceId: `${safeSession}-init`,
     name: traceName,

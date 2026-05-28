@@ -241,7 +241,7 @@ const traceName = buildTraceName(nextIdx, prompt);
 // ─── Langfuse trace enqueue (luôn enqueue → archive local + queue retry) ───
 // Background flush chỉ POST khi LANGFUSE_PUBLIC_KEY + SECRET_KEY set.
 try {
-  const lf = require(path.join(cwd, ".claude", "hooks", "langfuse-helper.js"));
+  const lf = require(process.env.CLAUDE_PLUGIN_ROOT ? path.join(process.env.CLAUDE_PLUGIN_ROOT, "hooks", "langfuse-helper.js") : path.join(cwd, ".claude", "hooks", "langfuse-helper.js"));
   const traceId = `${safeSession}-${idxStr}`;
   lf.enqueueTrace(sessionId, {
     traceId,

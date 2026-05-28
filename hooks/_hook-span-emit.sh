@@ -45,7 +45,7 @@ __hook_span_emit_atexit() {
   safe_sid=$(printf '%s' "$sid" | tr -c 'a-zA-Z0-9_-' '_' | cut -c1-64)
   [[ -z "$safe_sid" ]] && safe_sid="unknown"
 
-  local pending_dir="$__SPAN_HELPER_DIR/.hook-spans-pending"
+  local pending_dir="${PWD}/.claude/hooks/.hook-spans-pending"
   mkdir -p "$pending_dir" 2>/dev/null || return $exit_code
 
   local t_end

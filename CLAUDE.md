@@ -53,11 +53,13 @@ Claude Code tự load `commands/`, `agents/`, `skills/`, `hooks/` từ plugin kh
 | Hook | Event | Vai trò |
 |------|-------|---------|
 | `session-start.sh` | SessionStart | Preload state, init telemetry |
+| `check-consumer-setup.sh` | SessionStart (startup only) | Nhắc consumer tạo các file/folder bắt buộc nếu thiếu (BMAD config, roadmap, playwright config, src/constants, src/fixtures, tests/). Tự skip khi chạy trên plugin source. Env override: `CONSUMER_REQUIRED_PATHS`, `CONSUMER_SETUP_SKIP_DEFAULTS=1`. Bypass: `SKIP_SETUP_CHECK=1` |
 | `session-logger-init.sh` | UserPromptSubmit | Bắt đầu log session |
 | `enforce-roadmap-reading.sh` | UserPromptSubmit | Ép đọc roadmap doc (nếu consumer có) trước khi code |
 | `orchestrate-test-automation.sh` | UserPromptSubmit | Inject test-writing checklist (Rule #6, factory discipline, terseness) |
 | `preload-qa-context.sh` | UserPromptSubmit | Load QA context relevant |
 | `enforce-bmad-output-consistency.sh` | UserPromptSubmit | Gate BMAD agent activation ≤ 250 tokens |
+| `enforce-bmad-config-priority.sh` | UserPromptSubmit | Ép đọc `_bmad/*` ưu tiên consumer (`./_bmad/`) > plugin (`${CLAUDE_PLUGIN_ROOT}/_bmad/`). Detect overrides + inject context. Bypass: `SKIP_BMAD_PRIORITY=1` |
 | `langfuse-score-detector.sh` | UserPromptSubmit | Detect scoring opportunity |
 | `enforce-test-quality-checklist.sh` | PreToolUse Write\|Edit | Block test code vi phạm 9 rules |
 | `enforce-read-dedup.sh` | PreToolUse Read | Block đọc trùng file (cost control) |
