@@ -1,0 +1,56 @@
+#!/usr/bin/env sh
+# pre-push: fetch origin/main + check conflict trước khi cho push.
+# Block push nếu phát hiện conflict — buộc rebase/merge giải quyết local trước.
+#
+# Bypass: git push --no-verify (CHỈ dùng khi cần emergency)
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# Skip nếu đang push main (không cần check chính nó với chính nó)
+if [ "$BRANCH" = "main" ]; then
+  exit 0
+fi
+
+echo "→ Fetch origin/main để check conflict..."
+if ! git fetch origin main --quiet 2>/dev/null; then
+  echo "⚠ git fetch origin main failed (offline?) — cho phép push, tự chịu trách nhiệm."
+  exit 0
+fi
+
+MERGE_BASE=$(git merge-base HEAD origin/main 2>/dev/null)
+if [ -z "$MERGE_BASE" ]; then
+  echo "⚠ Không tìm thấy merge-base với origin/main — skip check."
+  exit 0
+fi
+
+MAIN_SHA=$(git rev-parse origin/main)
+
+# Nếu HEAD đã chứa toàn bộ origin/main (main là ancestor) → không có gì để conflict
+if [ "$MERGE_BASE" = "$MAIN_SHA" ]; then
+  echo "✓ Branch đã up-to-date với origin/main, no conflict possible."
+  exit 0
+fi
+
+# Dùng merge-tree (git 2.38+) detect conflict không cần làm bẩn working tree
+MERGE_RESULT=$(git merge-tree --write-tree --merge-base="$MERGE_BASE" HEAD origin/main 2>&1)
+MERGE_EXIT=$?
+
+# git merge-tree exit code: 0 = clean, 1 = conflict
+if [ $MERGE_EXIT -ne 0 ] || echo "$MERGE_RESULT" | grep -qE "^(CONFLICT|<<<<<<<)"; then
+  echo ""
+  echo "❌ Conflict với origin/main — KHÔNG cho push."
+  echo ""
+  echo "$MERGE_RESULT" | grep -E "^(CONFLICT|Auto-merging)" | head -10
+  echo ""
+  echo "Giải quyết:"
+  echo "  git fetch origin main"
+  echo "  git rebase origin/main      # hoặc: git merge origin/main"
+  echo "  # fix conflict, git add ., git rebase --continue"
+  echo "  git push                    # retry"
+  echo ""
+  echo "Bypass (emergency only): git push --no-verify"
+  exit 1
+fi
+
+echo "✓ Không conflict với origin/main — cho phép push."
+exit 0

@@ -1,0 +1,12 @@
+{
+  "name": "qa-harness",
+  "version": "1.0.1",
+  "description": "Reusable Claude Code plugin for Playwright + TypeScript QA",
+  "private": true,
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}
