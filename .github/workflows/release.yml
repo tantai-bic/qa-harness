@@ -1,0 +1,119 @@
+name: Release Plugin
+
+# Trigger: push tag `v*` (vd: v1.0.1, v1.1.0, v2.0.0-beta.1)
+# Tag pre-release (chứa `-`) → auto mark prerelease.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history cho release notes auto-generate
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify version matches tag
+        run: |
+          VERSION=$(node -p "require('./.claude-plugin/plugin.json').version")
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "plugin.json version: $VERSION"
+          echo "git tag (sans v):    $TAG"
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "❌ Version mismatch — bump plugin.json/marketplace.json/package.json trước khi tag"
+            echo "   Dùng: bash scripts/bump-version.sh $TAG"
+            exit 1
+          fi
+          echo "✓ Version match"
+
+      - name: Build plugin tarball
+        run: bash scripts/pack.sh
+
+      - name: List dist/
+        run: ls -lh dist/
+
+      - name: Compute SHA256
+        id: sha
+        run: |
+          VERSION=$(node -p "require('./.claude-plugin/plugin.json').version")
+          FILE="dist/bmad-harness-plugin-${VERSION}.tgz"
+          SHA=$(sha256sum "$FILE" | cut -d' ' -f1)
+          SIZE=$(du -h "$FILE" | cut -f1)
+          FILES=$(tar -tzf "$FILE" | wc -l)
+          echo "sha=$SHA"     >> "$GITHUB_OUTPUT"
+          echo "size=$SIZE"   >> "$GITHUB_OUTPUT"
+          echo "files=$FILES" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Detect prerelease
+        id: prerelease
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            echo "flag=--prerelease" >> "$GITHUB_OUTPUT"
+            echo "Pre-release detected (tag contains '-')"
+          else
+            echo "flag=" >> "$GITHUB_OUTPUT"
+            echo "Stable release"
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.sha.outputs.version }}"
+          gh release create "${GITHUB_REF_NAME}" \
+            "dist/bmad-harness-plugin-${VERSION}.tgz" \
+            --title "v${VERSION}" \
+            --generate-notes \
+            --notes-file <(cat <<EOF
+          ## Bundle info
+
+          - **Size**: ${{ steps.sha.outputs.size }}
+          - **Files**: ${{ steps.sha.outputs.files }}
+          - **SHA256**: \`${{ steps.sha.outputs.sha }}\`
+
+          ## Install
+
+          ### A. Tarball (manual)
+
+          \`\`\`bash
+          curl -L -o qa-harness.tgz https://github.com/${{ github.repository }}/releases/download/${GITHUB_REF_NAME}/bmad-harness-plugin-${VERSION}.tgz
+          mkdir -p ~/qa-harness && tar -xzf qa-harness.tgz -C ~/qa-harness
+          cd /your/playwright-project
+          claude --plugin-dir ~/qa-harness
+          \`\`\`
+
+          ### B. Marketplace (\`~/.claude/settings.json\`)
+
+          \`\`\`json
+          {
+            "extraKnownMarketplaces": {
+              "qa-harness": {
+                "type": "github",
+                "repository": "${{ github.repository }}"
+              }
+            },
+            "enabledPlugins": {
+              "bmad-harness-plugin@qa-harness": true
+            }
+          }
+          \`\`\`
+
+          ---
+          _Auto-generated bởi \`.github/workflows/release.yml\`_
+          EOF
+          ) \
+            ${{ steps.prerelease.outputs.flag }}

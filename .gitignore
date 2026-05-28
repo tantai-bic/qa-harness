@@ -63,3 +63,7 @@ hooks/.session-map/
 hooks/.langfuse-queue/
 hooks/.langfuse-cursor/
 hooks/.hook-spans-pending/
+
+# Plugin distribution bundles
+dist/
+*.tgz
