@@ -58,7 +58,7 @@ fi
 
 # Check langfuse configured
 LF_OK="no"
-if node .claude/hooks/langfuse-helper.js configured 2>/dev/null; then
+if node "${CLAUDE_PLUGIN_ROOT:+${CLAUDE_PLUGIN_ROOT}/hooks/langfuse-helper.js}${CLAUDE_PLUGIN_ROOT:-.claude/hooks/langfuse-helper.js}" configured 2>/dev/null; then
   LF_OK="yes"
 fi
 

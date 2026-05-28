@@ -173,7 +173,7 @@ process.stdout.write(JSON.stringify({
   observationId: process.argv[6] || undefined,
 }));
 ' "$_trace_id" "$_name" "$_value" "$_comment" "$_data_type" "$_observation_id" \
-    | node .claude/hooks/langfuse-helper.js score "$_session_id"
+    | node "${CLAUDE_PLUGIN_ROOT:+${CLAUDE_PLUGIN_ROOT}/hooks/langfuse-helper.js}${CLAUDE_PLUGIN_ROOT:-.claude/hooks/langfuse-helper.js}" score "$_session_id"
 
   return $?
 }
@@ -415,7 +415,7 @@ if [[ -z "${LANGFUSE_PUBLIC_KEY:-}" || -z "${LANGFUSE_SECRET_KEY:-}" ]]; then
   echo "   name=$NAME  value=$VALUE"
   echo ""
   echo "   Để push: set LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY, rồi run:"
-  echo "     node .claude/hooks/langfuse-helper.js flush \"$SESSION_ID\""
+  echo "     node ${CLAUDE_PLUGIN_ROOT:+"${CLAUDE_PLUGIN_ROOT}/hooks/langfuse-helper.js"}${CLAUDE_PLUGIN_ROOT:-.claude/hooks/langfuse-helper.js} flush \"$SESSION_ID\""
   exit 0
 elif [[ -f "$QUEUE_FILE" ]]; then
   echo "⚠ score đã enqueue NHƯNG POST tới Langfuse failed (queue file vẫn còn) → retry next flush."

@@ -1,21 +1,21 @@
 {
-  "enabledPlugins": {
-    "playwright@claude-plugins-official": true
-  },
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [],
   "hooks": {
     "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/check-consumer-setup.sh\""
+          }
+        ]
+      },
       {
         "matcher": "startup|resume|clear|compact",
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/session-start.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash hooks/check-consumer-setup.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh\""
           }
         ]
       }
@@ -25,27 +25,27 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/session-logger-init.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-logger-init.sh\""
           },
           {
             "type": "command",
-            "command": "bash hooks/enforce-roadmap-reading.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/enforce-roadmap-reading.sh\""
           },
           {
             "type": "command",
-            "command": "bash hooks/orchestrate-test-automation.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/orchestrate-test-automation.sh\""
           },
           {
             "type": "command",
-            "command": "bash hooks/preload-qa-context.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/preload-qa-context.sh\""
           },
           {
             "type": "command",
-            "command": "bash hooks/enforce-bmad-output-consistency.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/enforce-bmad-output-consistency.sh\""
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/langfuse-score-detector.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/langfuse-score-detector.sh\""
           }
         ]
       }
@@ -56,7 +56,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash hooks/enforce-test-quality-checklist.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/enforce-test-quality-checklist.sh\""
           }
         ]
       },
@@ -65,7 +65,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash hooks/enforce-read-dedup.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/enforce-read-dedup.sh\""
           }
         ]
       }
@@ -75,7 +75,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/session-logger-tool.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-logger-tool.sh\""
           }
         ]
       }
@@ -85,7 +85,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/session-stop.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-stop.sh\""
           }
         ]
       }
@@ -95,7 +95,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/session-cleanup.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-cleanup.sh\""
           }
         ]
       }

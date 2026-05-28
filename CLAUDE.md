@@ -53,6 +53,7 @@ Claude Code tự load `commands/`, `agents/`, `skills/`, `hooks/` từ plugin kh
 | Hook | Event | Vai trò |
 |------|-------|---------|
 | `session-start.sh` | SessionStart | Preload state, init telemetry |
+| `check-consumer-setup.sh` | SessionStart (startup only) | Nhắc consumer tạo các file/folder bắt buộc nếu thiếu (BMAD config, roadmap, playwright config, src/constants, src/fixtures, tests/). Tự skip khi chạy trên plugin source. Env override: `CONSUMER_REQUIRED_PATHS`, `CONSUMER_SETUP_SKIP_DEFAULTS=1`. Bypass: `SKIP_SETUP_CHECK=1` |
 | `session-logger-init.sh` | UserPromptSubmit | Bắt đầu log session |
 | `enforce-roadmap-reading.sh` | UserPromptSubmit | Ép đọc roadmap doc (nếu consumer có) trước khi code |
 | `orchestrate-test-automation.sh` | UserPromptSubmit | Inject test-writing checklist (Rule #6, factory discipline, terseness) |
