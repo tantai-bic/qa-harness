@@ -61,6 +61,7 @@ Claude Code tự load `commands/`, `agents/`, `skills/`, `hooks/` từ plugin kh
 | `enforce-bmad-output-consistency.sh` | UserPromptSubmit | Gate BMAD agent activation ≤ 250 tokens |
 | `enforce-bmad-config-priority.sh` | UserPromptSubmit | Ép đọc `_bmad/*` ưu tiên consumer (`./_bmad/`) > plugin (`${CLAUDE_PLUGIN_ROOT}/_bmad/`). Detect overrides + inject context. Bypass: `SKIP_BMAD_PRIORITY=1` |
 | `langfuse-score-detector.sh` | UserPromptSubmit | Detect scoring opportunity |
+| `enforce-fixture-helper-prerequisite.sh` | PreToolUse Write\|Edit | Block viết test spec nếu import service/factory/fixture/helper CHƯA tồn tại. Buộc tạo prerequisite trước. Bypass: `SKIP_FIXTURE_PREREQ=1` |
 | `enforce-test-quality-checklist.sh` | PreToolUse Write\|Edit | Block test code vi phạm 9 rules |
 | `enforce-read-dedup.sh` | PreToolUse Read | Block đọc trùng file (cost control) |
 | `session-logger-tool.sh` | PostToolUse | Log tool execution |
