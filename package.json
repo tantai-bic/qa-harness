@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "prepare": "husky",
-    "pack:plugin": "bash scripts/pack.sh"
+    "pack:plugin": "bash scripts/pack.sh",
+    "bump:version": "bash scripts/bump-version.sh"
   },
   "devDependencies": {
     "husky": "^9.1.7"
