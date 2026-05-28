@@ -4,7 +4,8 @@
   "description": "Reusable Claude Code plugin for Playwright + TypeScript QA",
   "private": true,
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "pack:plugin": "bash scripts/pack.sh"
   },
   "devDependencies": {
     "husky": "^9.1.7"
