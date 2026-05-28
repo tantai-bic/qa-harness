@@ -87,6 +87,12 @@ tea_use_mcp_enhancements: true
 tea_use_playwright_utils: true
 ```
 
+> **Config priority** (enforced bởi `enforce-bmad-config-priority.sh` hook):
+> 1. `./_bmad/<path>` ← **Consumer override (wins)** — file ở consumer cwd
+> 2. `${CLAUDE_PLUGIN_ROOT}/_bmad/<path>` ← **Plugin default fallback**
+>
+> Áp dụng cho mọi file dưới `_bmad/`: `config.yaml`, `agents/*.md`, `workflows/**/*.{yaml,md}`, `tasks/*.md`, `core/**`. Consumer có thể override 1 agent / 1 workflow riêng cho project mà KHÔNG cần fork plugin — chỉ tạo file ở `./_bmad/<same-relative-path>`. Hook tự scan + report cho Claude mỗi prompt nào đang override.
+
 ### Bước 3 — Enable plugin
 
 **Cách A — Official command (recommended)** — trong Claude session:
