@@ -38,16 +38,21 @@ SPAN_INPUT_JSON="$INPUT"
 FILE_PATH=$(printf '%s' "$INPUT" | grep -oE '"file_path"[[:space:]]*:[[:space:]]*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
 TOOL_NAME=$(printf '%s' "$INPUT" | grep -oE '"tool_name"[[:space:]]*:[[:space:]]*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
 
+# Normalize Windows backslash → forward slash + collapse multi-slash
+# (bash ${//} substitution không reliable với backslash trên Git Bash)
+# Note: JSON escape "\\" → bash captures 2 chars `\\` → tr → `//` → collapse `/`
+FILE_PATH_NORM=$(printf '%s' "$FILE_PATH" | tr '\\' '/' 2>/dev/null | sed 's|/\+|/|g')
+
 # Skip nếu không phải test spec
-if [[ -z "$FILE_PATH" ]] || [[ ! "$FILE_PATH" =~ tests/.*\.spec\.ts$ ]]; then
-  SPAN_DECISION="skip"; SPAN_DETAIL="not_test_spec"
+if [[ -z "$FILE_PATH_NORM" ]] || [[ ! "$FILE_PATH_NORM" =~ tests/.*\.spec\.ts$ ]]; then
+  SPAN_DECISION="skip"; SPAN_DETAIL="not_test_spec path=$FILE_PATH"
   source "$(dirname "$0")/_hook-span-emit.sh" 2>/dev/null || true
   exit 0
 fi
 
-# ─── Infer required tags from path + filename ──────────────────────────────
+# ─── Infer required tags from path + filename (dùng path normalized) ──────
 EXPECTED_PRIORITY=""
-case "$FILE_PATH" in
+case "$FILE_PATH_NORM" in
   */P0-*.spec.ts) EXPECTED_PRIORITY="@P0" ;;
   */P1-*.spec.ts) EXPECTED_PRIORITY="@P1" ;;
   */P2-*.spec.ts) EXPECTED_PRIORITY="@P2" ;;
@@ -55,7 +60,7 @@ case "$FILE_PATH" in
 esac
 
 EXPECTED_LAYER=""
-case "$FILE_PATH" in
+case "$FILE_PATH_NORM" in
   */tests/api/*|tests/api/*)  EXPECTED_LAYER="@BE" ;;
   */tests/e2e/*|tests/e2e/*)  EXPECTED_LAYER="@FE" ;;
 esac
@@ -140,7 +145,7 @@ fi
 {
   echo "🏷️  SPEC TAGS MISSING/INVALID — KHÔNG cho Write/Edit spec thiếu tag CICD."
   echo ""
-  echo "Target: $FILE_PATH"
+  echo "Target: $FILE_PATH_NORM"
   echo "Inferred: priority=${EXPECTED_PRIORITY:-<unknown>}  layer=$EXPECTED_LAYER"
   echo ""
   echo "Vi phạm:"

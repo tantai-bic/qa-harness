@@ -39,9 +39,14 @@ SPAN_INPUT_JSON="$INPUT"
 FILE_PATH=$(printf '%s' "$INPUT" | grep -oE '"file_path"[[:space:]]*:[[:space:]]*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
 TOOL_NAME=$(printf '%s' "$INPUT" | grep -oE '"tool_name"[[:space:]]*:[[:space:]]*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
 
+# Normalize Windows backslash → forward slash + collapse multi-slash
+# (bash ${//} substitution không reliable với backslash trên Git Bash)
+# Note: JSON escape "\\" → bash captures 2 chars `\\` → tr → `//` → collapse `/`
+FILE_PATH_NORM=$(printf '%s' "$FILE_PATH" | tr '\\' '/' 2>/dev/null | sed 's|/\+|/|g')
+
 # Skip nếu không phải test spec
-if [[ -z "$FILE_PATH" ]] || [[ ! "$FILE_PATH" =~ tests/.*\.spec\.ts$ ]]; then
-  SPAN_DECISION="skip"; SPAN_DETAIL="not_test_spec"
+if [[ -z "$FILE_PATH_NORM" ]] || [[ ! "$FILE_PATH_NORM" =~ tests/.*\.spec\.ts$ ]]; then
+  SPAN_DECISION="skip"; SPAN_DETAIL="not_test_spec path=$FILE_PATH"
   source "$(dirname "$0")/_hook-span-emit.sh" 2>/dev/null || true
   exit 0
 fi
@@ -108,7 +113,7 @@ fi
 {
   echo "🚧 PREREQUISITE MISSING — KHÔNG cho viết test spec trước khi tạo helper/fixture/service/factory."
   echo ""
-  echo "Target: $FILE_PATH"
+  echo "Target: $FILE_PATH_NORM"
   echo ""
   echo "Các file import nhưng CHƯA tồn tại:"
   for i in "${!MISSING[@]}"; do
