@@ -56,7 +56,7 @@ Claude Code tự load `commands/`, `agents/`, `skills/`, `hooks/` từ plugin kh
 | `check-consumer-setup.sh` | SessionStart (startup only) | Nhắc consumer tạo các file/folder bắt buộc nếu thiếu (BMAD config, roadmap, playwright config, src/constants, src/fixtures, tests/). Tự skip khi chạy trên plugin source. Env override: `CONSUMER_REQUIRED_PATHS`, `CONSUMER_SETUP_SKIP_DEFAULTS=1`. Bypass: `SKIP_SETUP_CHECK=1` |
 | `session-logger-init.sh` | UserPromptSubmit | Bắt đầu log session |
 | `enforce-roadmap-reading.sh` | UserPromptSubmit | Ép đọc roadmap doc (nếu consumer có) trước khi code |
-| `orchestrate-test-automation.sh` | UserPromptSubmit | Inject test-writing checklist (Rule #6, factory discipline, terseness) |
+| `orchestrate-test-automation.sh` | UserPromptSubmit | 2-mode: (1) LOGIC keyword (viết/create/add test) → inject full QA orchestration checklist (Rule #6, factory, skill reads). (2) TEXT-ONLY edit (rename/fix typo/update string) → downgrade, chỉ inject nhắc giữ tags + import structure. Bypass: `SKIP_TEST_ORCHESTRATION=1` |
 | `preload-qa-context.sh` | UserPromptSubmit | Load QA context relevant |
 | `enforce-bmad-output-consistency.sh` | UserPromptSubmit | Gate BMAD agent activation ≤ 250 tokens |
 | `enforce-bmad-config-priority.sh` | UserPromptSubmit | Ép đọc `_bmad/*` ưu tiên consumer (`./_bmad/`) > plugin (`${CLAUDE_PLUGIN_ROOT}/_bmad/`). Detect overrides + inject context. Bypass: `SKIP_BMAD_PRIORITY=1` |
