@@ -89,28 +89,47 @@ tea_use_playwright_utils: true
 
 ### Bước 3 — Enable plugin
 
-**Cách A — Permanent (recommended)** — `~/.claude/settings.json`:
+**Cách A — Official command (recommended)** — trong Claude session:
+
+```bash
+cd your-playwright-project
+claude
+# Trong session:
+/plugin marketplace add tantai-bic/qa-harness
+/plugin install bmad-harness-plugin@qa-harness
+/reload-plugins                         # apply ngay (hoặc restart claude)
+```
+
+Plugin tự enable sau install. Không cần edit settings.json thủ công.
+
+**Cách B — settings.json permanent** — `~/.claude/settings.json`:
 
 ```json
 {
-  "enabledPlugins": {
-    "bmad-harness-plugin@local": true
-  },
   "extraKnownMarketplaces": {
-    "local": {
-      "type": "local",
-      "path": "D:/path/to/qa-harness"
+    "qa-harness": {
+      "type": "github",
+      "repository": "tantai-bic/qa-harness"
     }
+  },
+  "enabledPlugins": {
+    "bmad-harness-plugin@qa-harness": true
   }
 }
 ```
 
-**Cách B — Ad-hoc** (test/dev):
+**Cách C — Ad-hoc local** (dev plugin, không cần marketplace):
 
 ```bash
 cd your-playwright-project
 claude --plugin-dir /path/to/qa-harness
-# Nếu chưa auto-enable: /plugin enable bmad-harness-plugin
+```
+
+**Cách D — Tarball offline** (air-gap, bulk provisioning) — dùng `scripts/install-consumer.sh`:
+
+```bash
+bash scripts/install-consumer.sh latest ~/.qa-harness
+claude --plugin-dir ~/.qa-harness
 ```
 
 ### Bước 4 — `.env` cho Langfuse (optional)

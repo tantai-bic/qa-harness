@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
-# install-consumer.sh — setup bmad-harness-plugin ở phía consumer.
+# install-consumer.sh — FALLBACK installer cho special cases.
+#
+# ⚠ PREFERRED: dùng official Claude Code command trong session:
+#   /plugin marketplace add tantai-bic/qa-harness
+#   /plugin install bmad-harness-plugin@qa-harness
+#
+# Script này CHỈ dùng khi:
+#   - Air-gap / offline install (không kết nối được GitHub từ Claude)
+#   - Bulk provisioning (CI, devbox setup, fleet management)
+#   - Custom install path (không muốn dùng default Claude plugin dir)
+#   - Auto-generate consumer config skeleton (_bmad/bmm/config.yaml + .env.example)
 #
 # Tải tarball từ GitHub release → extract → tạo config skeleton (nếu thiếu)
-# → in instructions enable plugin qua settings.json.
+# → in instructions enable plugin qua settings.json hoặc --plugin-dir.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/tantai-bic/qa-harness/main/scripts/install-consumer.sh | bash
-#
-# Hoặc download + run:
-#   curl -fsSL -o install-consumer.sh https://raw.githubusercontent.com/tantai-bic/qa-harness/main/scripts/install-consumer.sh
 #   bash install-consumer.sh [version] [install-dir]
 #
 # Defaults:
