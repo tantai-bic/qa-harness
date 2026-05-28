@@ -60,6 +60,7 @@ Claude Code tự load `commands/`, `agents/`, `skills/`, `hooks/` từ plugin kh
 | `preload-qa-context.sh` | UserPromptSubmit | Load QA context relevant |
 | `enforce-bmad-output-consistency.sh` | UserPromptSubmit | Gate BMAD agent activation ≤ 250 tokens |
 | `enforce-bmad-config-priority.sh` | UserPromptSubmit | Ép đọc `_bmad/*` ưu tiên consumer (`./_bmad/`) > plugin (`${CLAUDE_PLUGIN_ROOT}/_bmad/`). Detect overrides + inject context. Bypass: `SKIP_BMAD_PRIORITY=1` |
+| `run-test-mark-fixme.sh` | PostToolUse Write|Edit (async) | Sau khi Write/Edit `tests/**/*.spec.ts` → chạy `npx playwright test <file>` → mark fail tests bằng `test.fixme()` để không break CI. Cần `playwright.config.ts` + `npx`. Timeout 120s. Bypass: `SKIP_RUN_TEST=1`
 | `langfuse-score-detector.sh` | UserPromptSubmit | Detect scoring opportunity |
 | `enforce-fixture-helper-prerequisite.sh` | PreToolUse Write\|Edit | Block viết test spec nếu import service/factory/fixture/helper CHƯA tồn tại. Buộc tạo prerequisite trước. Bypass: `SKIP_FIXTURE_PREREQ=1` |
 | `enforce-spec-tags.sh` | PreToolUse Write\|Edit | Block spec thiếu/sai tag CICD. 3 category: PRIORITY (@P0-P3 — match file name), LAYER (@BE/@FE — match path), TYPE (≥1 của @Smoke/@Sanity/@Regression/@Function/@UI/@UX). Bypass: `SKIP_SPEC_TAGS=1` |
