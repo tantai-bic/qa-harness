@@ -63,6 +63,7 @@ Claude Code tự load `commands/`, `agents/`, `skills/`, `hooks/` từ plugin kh
 | `langfuse-score-detector.sh` | UserPromptSubmit | Detect scoring opportunity |
 | `enforce-fixture-helper-prerequisite.sh` | PreToolUse Write\|Edit | Block viết test spec nếu import service/factory/fixture/helper CHƯA tồn tại. Buộc tạo prerequisite trước. Bypass: `SKIP_FIXTURE_PREREQ=1` |
 | `enforce-spec-tags.sh` | PreToolUse Write\|Edit | Block spec thiếu/sai tag CICD. 3 category: PRIORITY (@P0-P3 — match file name), LAYER (@BE/@FE — match path), TYPE (≥1 của @Smoke/@Sanity/@Regression/@Function/@UI/@UX). Bypass: `SKIP_SPEC_TAGS=1` |
+| `enforce-security-test-presence.sh` | PreToolUse Write|Edit | Warn (KHÔNG block) khi spec test user-input nhưng thiếu security test coverage. Detect 401/403/XSS/injection patterns, @Security/@XSS/@Auth tag, *WithoutAuth() call. Bypass: `SKIP_SECURITY_REMINDER=1`
 | `enforce-test-quality-checklist.sh` | PreToolUse Write\|Edit | Block test code vi phạm 9 rules |
 | `enforce-read-dedup.sh` | PreToolUse Read | Block đọc trùng file (cost control) |
 | `session-logger-tool.sh` | PostToolUse | Log tool execution |

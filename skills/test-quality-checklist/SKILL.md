@@ -224,6 +224,61 @@ Test Fails
 - ✅ **If test follows test-design → Test ALWAYS CORRECT**
 - ❌ **NEVER change test to pass when backend wrong**
 
+### Test Fail Workflow — `.fixme()` vs `.skip()` vs Fix
+
+Sau khi `run-test-mark-fixme.sh` hook auto-mark fail tests bằng `.fixme()`, developer phải triage:
+
+```
+Test fail (đã auto-marked .fixme)
+│
+├─ A. Root cause = TEST LOGIC SAI (assertion sai, factory sai, sai endpoint)
+│   → Fix logic → Xoá `.fixme()` → Re-run → PASS
+│   → KHÔNG để .fixme() khi sửa được trong PR
+│
+├─ B. Root cause = BACKEND BUG (test đúng theo test-design, BE deviation)
+│   → GIỮ `.fixme()` để CICD không fail
+│   → Log bug theo `docs/templates/log-bug-api-template.md`
+│   → Link bug ticket ở comment trên `.fixme()`:
+│       test.fixme(  // BUG-#1234 — BE trả 500 thay vì 401 cho expired token
+│         "expired token → 401",
+│         { tag: ["@P0", "@BE", "@Function"] },
+│         async () => { ... }
+│       );
+│   → Khi BE fix → xoá `.fixme()` + close bug
+│
+├─ C. Root cause = REQUIREMENT ĐỔI (test design outdated)
+│   → Update test-design TRƯỚC (Hierarchy of Truth #1)
+│   → Update test code theo design mới → Xoá `.fixme()`
+│   → KHÔNG sửa test rồi mới quay lại update design
+│
+└─ D. Root cause = MÔI TRƯỜNG / FLAKY (test pass local, fail CI; race condition; data dirty)
+    → `.skip()` (KHÔNG `.fixme()`) + comment lý do + assign owner debug
+    → Vd: test.skip(  // FLAKY — race condition khi parallel >4 workers
+              "concurrent updates", ...
+            );
+    → Add tag `@flaky` để CICD selective exclude
+```
+
+### `.fixme()` vs `.skip()` — quyết định nhanh
+
+| Tình huống | Annotation | Lý do |
+|---|---|---|
+| Fail có bug ticket | `test.fixme()` | Track như work-in-progress, vẫn xuất hiện trong report |
+| Fail vì BE chưa implement | `test.fixme()` | Test đúng theo spec, chờ BE catch up |
+| Flaky / race condition | `test.skip()` + `@flaky` tag | KHÔNG track như "có bug", chờ debug môi trường |
+| Test legacy không còn relevant | XOÁ test | KHÔNG `.skip()` mãi |
+| Đang refactor — tạm tắt | `test.skip()` | Có comment "WIP — re-enable in PR #xxx" |
+
+### CICD behavior khác nhau
+
+| Annotation | Report show | Pre-merge gate | Coverage metric |
+|---|---|---|---|
+| `test.fixme()` | ✅ Hiện như "fixme" (orange) | KHÔNG block | Tính là "not run" |
+| `test.skip()` | ⚠ Hiện như "skipped" (gray) | KHÔNG block | Tính là "skipped" |
+| (xoá test) | Không hiện | N/A | Không tính |
+
+→ Default: `.fixme()` cho bug-driven, `.skip()` cho env-driven. Tránh `.skip()` cho bug vì che trace.
+
 ---
 
 ## 9️⃣ SERVICE LAYER INTEGRATION (NEW)
