@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "cost-control",
+  "displayName": "Cost Control",
+  "description": "Cost optimization gates: block duplicate Read calls to avoid wasted cache_read tokens on already-loaded files. Compact-aware (resets after compact) with auto-allow escape valve for post-compact Edit/Write 'File has not been read' errors.",
+  "version": "1.0.0",
+  "author": {
+    "name": "TanTai-BIC"
+  },
+  "keywords": [
+    "cost",
+    "cache",
+    "read-dedup",
+    "hooks"
+  ],
+  "components": {
+    "hooks": "./hooks"
+  }
+}

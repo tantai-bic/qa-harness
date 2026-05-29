@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "qa-context",
+  "displayName": "QA Context Injection",
+  "description": "UserPromptSubmit context injectors for QA workflow: preload qa-engineer + qa-test-case + test-quality-checklist skill docs (1× per session), enforce roadmap reading on implement/test requests, and orchestrate test automation with Rule #6 split + factory + skill reads checklist.",
+  "version": "1.0.0",
+  "author": {
+    "name": "TanTai-BIC"
+  },
+  "keywords": [
+    "qa",
+    "context",
+    "roadmap",
+    "test-orchestration",
+    "hooks"
+  ],
+  "components": {
+    "hooks": "./hooks"
+  }
+}

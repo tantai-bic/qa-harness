@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "bmad-guard",
+  "displayName": "BMAD Workflow Guards",
+  "description": "Runtime gates enforcing BMAD agent discipline: agent role scope (pm/sm/architect cannot edit code; dev cannot edit PRD; tea limited to test code), activation output consistency (≤250 tokens, no flourish), and BMAD config priority (consumer ./_bmad/ overrides plugin _bmad/).",
+  "version": "1.0.0",
+  "author": {
+    "name": "TanTai-BIC"
+  },
+  "keywords": [
+    "bmad",
+    "agent-scope",
+    "workflow-guard",
+    "hooks"
+  ],
+  "components": {
+    "hooks": "./hooks"
+  }
+}

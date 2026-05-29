@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "test-enforcement",
+  "displayName": "Test Enforcement Gates",
+  "description": "Pre-write quality gates for Playwright + TypeScript test specs: spec tags validation, quality checklist (9 rules), fixture/helper prerequisite check, security test coverage reminder, and post-write run-then-fixme automation.",
+  "version": "1.0.0",
+  "author": {
+    "name": "TanTai-BIC"
+  },
+  "keywords": [
+    "playwright",
+    "typescript",
+    "qa",
+    "test-enforcement",
+    "hooks"
+  ],
+  "components": {
+    "hooks": "./hooks"
+  }
+}

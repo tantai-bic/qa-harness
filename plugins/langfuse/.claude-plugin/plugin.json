@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "langfuse",
+  "displayName": "Langfuse Telemetry & Scoring",
+  "description": "Langfuse integration: score-detector (UserPromptSubmit — detect scoring opportunities), push-score (manual flush queued events), score-accuracy-efficiency (utility). Bundles langfuse-helper.js library (trace/span/flush/configured commands). Requires LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY env vars.",
+  "version": "1.0.0",
+  "author": {
+    "name": "TanTai-BIC"
+  },
+  "keywords": [
+    "langfuse",
+    "telemetry",
+    "scoring",
+    "observability",
+    "hooks"
+  ],
+  "components": {
+    "hooks": "./hooks"
+  }
+}

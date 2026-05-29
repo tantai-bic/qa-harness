@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "consumer-setup",
+  "displayName": "Consumer Setup Check",
+  "description": "SessionStart startup check that nudges consumers to create required files/folders (BMAD config, roadmap, playwright config, src/constants, src/fixtures, tests/). Auto-skips when running on plugin source. Env overrides: CONSUMER_REQUIRED_PATHS, CONSUMER_SETUP_SKIP_DEFAULTS.",
+  "version": "1.0.0",
+  "author": {
+    "name": "TanTai-BIC"
+  },
+  "keywords": [
+    "consumer",
+    "onboarding",
+    "setup-check",
+    "hooks"
+  ],
+  "components": {
+    "hooks": "./hooks"
+  }
+}

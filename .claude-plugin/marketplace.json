@@ -8,7 +8,47 @@
     {
       "name": "bmad-harness-plugin",
       "source": "./",
-      "description": "BMAD QA Harness — đóng khung Claude vào quy trình QA-driven chuẩn hoá (agents + hooks + skills + commands)."
+      "description": "[LEGACY — pending removal] BMAD QA Harness monolith. Kept until new plugins are validated end-to-end."
+    },
+    {
+      "name": "bmad-workflows",
+      "source": "./plugins/bmad-workflows",
+      "description": "BMAD agents + workflows + QA skills + slash commands. Knowledge/standards layer — pair with hook plugins for runtime gates."
+    },
+    {
+      "name": "test-enforcement",
+      "source": "./plugins/test-enforcement",
+      "description": "Pre-write quality gates: spec tags, quality checklist (9 rules), fixture/helper prereqs, security reminder, run-then-fixme."
+    },
+    {
+      "name": "cost-control",
+      "source": "./plugins/cost-control",
+      "description": "Cost optimization: block duplicate Read calls to avoid wasted cache_read tokens. Compact-aware with auto-allow escape valve."
+    },
+    {
+      "name": "bmad-guard",
+      "source": "./plugins/bmad-guard",
+      "description": "BMAD workflow guards: agent role scope, activation output consistency (≤250 tokens), config priority (consumer overrides plugin)."
+    },
+    {
+      "name": "qa-context",
+      "source": "./plugins/qa-context",
+      "description": "UserPromptSubmit context injectors: preload skill docs, enforce roadmap reading, orchestrate test automation checklist."
+    },
+    {
+      "name": "consumer-setup",
+      "source": "./plugins/consumer-setup",
+      "description": "SessionStart startup check nudging consumers to create required files/folders (BMAD config, roadmap, playwright config, src/, tests/)."
+    },
+    {
+      "name": "session",
+      "source": "./plugins/session",
+      "description": "Session lifecycle + logging: start/stop/cleanup/logger-init/logger-tool. Bundles langfuse-helper.js for telemetry."
+    },
+    {
+      "name": "langfuse",
+      "source": "./plugins/langfuse",
+      "description": "Langfuse telemetry & scoring: score-detector hook + push-score / accuracy-efficiency utilities. Bundles langfuse-helper.js."
     }
   ]
 }

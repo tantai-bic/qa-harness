@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "bmad-workflows",
+  "displayName": "BMAD QA Workflows",
+  "description": "BMAD framework agents (pm/sm/dev/architect/tea/ux-designer/analyst/tech-writer/quick-flow-solo-dev/bmad-master) + workflows (create-prd, dev-story, testarch-*, code-review, etc.) + QA skills (qa-engineer, qa-test-case, test-quality-checklist) + slash commands. The core knowledge/standards layer of the harness — pair with hook plugins (test-enforcement, bmad-guard, qa-context) for runtime gates.",
+  "version": "1.0.0",
+  "author": {
+    "name": "TanTai-BIC"
+  },
+  "keywords": [
+    "bmad",
+    "qa",
+    "playwright",
+    "skills",
+    "commands",
+    "agents"
+  ],
+  "components": {
+    "commands": "./commands",
+    "skills": "./skills"
+  }
+}
