@@ -157,7 +157,12 @@ Observed: trace 89fee3f7 waste ~$0.90 (12K tokens) cho narrate "thinking out lou
 - Action TRƯỚC, explain SAU (chỉ khi user hỏi)
 - Final summary: 1-2 sentences + file list, KHÔNG re-explain strategy
 - KHÔNG repeat hook context đã có trong additionalContext
-- Read dedup: file đã đọc → dùng Grep với pattern thay vì Read full
+- **Pre-Read context scan (CRITICAL — hook block prevention):** TRƯỚC mỗi Read call, mental-scan tool_result trước đó trong session/conversation xem file path đó đã xuất hiện chưa.
+  - ✅ Đã Read/Write/Edit trong session → nội dung VẪN trong context (scroll up). Cần phần cụ thể → **Grep targeted** với pattern, KHÔNG Read full.
+  - ✅ Chưa từng touch HOẶC đã Read xong rồi Write/Edit overwrite sau đó → Read OK (nội dung context outdated).
+  - ❌ Re-Read file đã đọc mà chưa modify → bị `enforce-read-dedup.sh` block (1 round-trip + ~$0.05-0.10 lãng phí cache_read tokens cho cả conversation).
+  - Mental check 3 câu hỏi trước Read: (1) File này đã xuất hiện trong tool_result session này? (2) Sau đó có Edit/Write nào không? (3) Tôi thực sự cần FULL content hay chỉ vài dòng cụ thể (→ Grep)?
+  - Edge cases: sau compact → hook v2 reset counter. Edit báo "File has not been read" → hook auto-allow Read. File đổi external (CI/git pull) → `SKIP_READ_DEDUP=1`.
 - **Parallel tool calls (CRITICAL — cost driver):** mọi Bash/Read/Grep/Glob/Edit **độc lập** PHẢI gom vào 1 message (1 assistant turn = N tool_use blocks). Observed trace 2658eeb4: 23 sequential tool calls × ~400K cache_read/call = **$15.68/turn**. Gom 23 → ~5 turns parallel batches = **-60% cost** (~$6/turn saved).
   - ✅ Độc lập = không phụ thuộc output của call trước (vd: đọc 5 file khác nhau, grep 3 pattern, chạy `git status` + `git diff` + `git log`)
   - ❌ Tuần tự = call B cần output của call A (vd: `git rev-parse HEAD` → dùng SHA cho `git diff <SHA>`)

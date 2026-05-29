@@ -32,7 +32,7 @@ const transcriptPath = data.transcript_path || "";
 if (!sessionId) process.exit(0);
 
 let lf;
-try { lf = require(process.env.CLAUDE_PLUGIN_ROOT ? path.join(process.env.CLAUDE_PLUGIN_ROOT, "hooks", "langfuse-helper.js") : path.join(cwd, ".claude", "hooks", "langfuse-helper.js")); }
+try { lf = require(path.join(cwd, ".claude", "hooks", "langfuse-helper.js")); }
 catch (e) { process.exit(0); }
 // KHÔNG gate by isConfigured — luôn enqueue + archive local. Background flush
 // chỉ POST khi configured.
@@ -142,7 +142,55 @@ for (const l of lines) {
   assistantMsgs.push(m);
 }
 
-if (!assistantMsgs.length) process.exit(0);
+// ─── Detect interrupt markers from user messages AFTER cursor ───
+// Claude Code emits "[Request interrupted by user]" khi user nhấn Escape:
+//   - tool_result block: { is_error: true, content: "[Request interrupted by user for tool use]" }
+//   - plain user text: "[Request interrupted by user]"
+// Scope: chỉ scan user msgs SAU lastUuid để không re-tag interrupts cũ.
+const interruptRe = /\[Request (?:interrupted|cancel(?:l?ed)?)|interrupted by user/i;
+const interruptedToolIds = new Set();
+let interruptDetected = false;
+let interruptTimestamp = null;
+{
+  let pastCursor = !lastUuid;
+  for (const l of lines) {
+    let m;
+    try { m = JSON.parse(l); } catch (e) { continue; }
+    if (!pastCursor) {
+      if (m.uuid === lastUuid) pastCursor = true;
+      continue;
+    }
+    if (m.type !== "user" || !m.message) continue;
+    const content = m.message.content;
+    if (typeof content === "string") {
+      if (interruptRe.test(content)) {
+        interruptDetected = true;
+        interruptTimestamp = m.timestamp || interruptTimestamp;
+      }
+    } else if (Array.isArray(content)) {
+      for (const block of content) {
+        if (!block) continue;
+        if (block.type === "tool_result" && block.is_error) {
+          const txt = typeof block.content === "string"
+            ? block.content
+            : Array.isArray(block.content)
+              ? block.content.filter(b => b && b.type === "text").map(b => b.text || "").join("")
+              : "";
+          if (interruptRe.test(txt)) {
+            interruptDetected = true;
+            interruptTimestamp = m.timestamp || interruptTimestamp;
+            if (block.tool_use_id) interruptedToolIds.add(block.tool_use_id);
+          }
+        }
+      }
+    }
+  }
+}
+
+// Skip only if KHÔNG có assistant msgs mới AND KHÔNG detect interrupt.
+// Interrupt-only case (prompt bị Escape rất sớm) vẫn cần flushSync ở cuối
+// để push trace + hook spans đã enqueue từ UserPromptSubmit.
+if (!assistantMsgs.length && !interruptDetected) process.exit(0);
 
 // ─── Helpers ───
 function extractText(content) {
@@ -191,7 +239,14 @@ for (const msg of assistantMsgs) {
   const bucket = byReq.get(reqId);
   bucket.lastMsg = msg;
   bucket.uuids.push(msg.uuid);
-  const text = extractText((msg.message || {}).content);
+  bucket.toolUseIds = bucket.toolUseIds || [];
+  const _content = (msg.message || {}).content;
+  if (Array.isArray(_content)) {
+    for (const b of _content) {
+      if (b && b.type === "tool_use" && b.id) bucket.toolUseIds.push(b.id);
+    }
+  }
+  const text = extractText(_content);
   if (text && text.trim()) bucket.texts.push(text);
 }
 
@@ -247,14 +302,28 @@ for (const [reqId, bucket] of byReq) {
     usageDetails,
     startTime: firstMsg.timestamp || new Date().toISOString(),
     endTime: lastMsg.timestamp || new Date().toISOString(),
-    metadata: {
-      requestId: reqId,
-      blockCount: bucket.uuids.length,        // số blocks trong API response
-      firstBlockUuid: bucket.uuids[0],
-      lastBlockUuid: bucket.uuids[bucket.uuids.length - 1],
-      stopReason: message.stop_reason,
-      serviceTier: usage.service_tier,
-    },
+    metadata: (function () {
+      const base = {
+        requestId: reqId,
+        blockCount: bucket.uuids.length,        // số blocks trong API response
+        firstBlockUuid: bucket.uuids[0],
+        lastBlockUuid: bucket.uuids[bucket.uuids.length - 1],
+        stopReason: message.stop_reason,
+        serviceTier: usage.service_tier,
+      };
+      const interruptedHere = (bucket.toolUseIds || []).filter(id => interruptedToolIds.has(id));
+      // Tag generation interrupted khi:
+      //   (a) có tool_use trong bucket nằm trong danh sách interrupted, HOẶC
+      //   (b) interrupt detected nhưng KHÔNG kèm tool_use_id (text-only interrupt)
+      //       VÀ bucket này là cuối cùng (gán cho generation cuối).
+      const isLastBucket = bucket === Array.from(byReq.values()).pop();
+      if (interruptedHere.length || (interruptDetected && !interruptedToolIds.size && isLastBucket)) {
+        base.interrupted = true;
+        base.interruptSource = "user";
+        if (interruptedHere.length) base.interruptedToolUseIds = interruptedHere;
+      }
+      return base;
+    })(),
   });
 
   pushed++;
@@ -268,8 +337,71 @@ if (process.env.LANGFUSE_DEBUG === "1") {
   process.stderr.write(`[session-stop] enqueued ${pushed} generation(s) for traceId=${traceId}\n`);
 }
 
-// Spawn background flush (only POSTs if configured) — không block Stop hook
-if (lf.isConfigured()) lf.spawnBackgroundFlush(sessionId);
+// ─── Enqueue cancellation spans for tool_uses bị interrupt ───
+// PostToolUse KHÔNG fire khi tool bị Escape mid-exec → tool span KHÔNG được tạo.
+// Detect từ transcript (tool_result is_error + interrupt marker) + tạo span thay thế.
+if (interruptDetected && assistantMsgs.length) {
+  const toolUsesFromNew = new Map();  // tool_use_id → { name, input, timestamp, msgUuid }
+  for (const msg of assistantMsgs) {
+    const content = (msg.message || {}).content;
+    if (!Array.isArray(content)) continue;
+    for (const block of content) {
+      if (block && block.type === "tool_use" && block.id) {
+        toolUsesFromNew.set(block.id, {
+          name: block.name || "unknown",
+          input: block.input || {},
+          timestamp: msg.timestamp,
+          msgUuid: msg.uuid,
+        });
+      }
+    }
+  }
+  let interruptedSpans = 0;
+  for (const [toolUseId, info] of toolUsesFromNew) {
+    if (!interruptedToolIds.has(toolUseId)) continue;
+    lf.enqueueSpan(sessionId, {
+      traceId,
+      name: `tool:${info.name}:interrupted`,
+      input: info.input,
+      output: { interrupted: true, reason: "user_interrupt" },
+      startTime: info.timestamp || new Date().toISOString(),
+      endTime: interruptTimestamp || new Date().toISOString(),
+      metadata: {
+        tool: info.name,
+        tool_use_id: toolUseId,
+        interrupted: true,
+        interruptSource: "user",
+        assistantMsgUuid: info.msgUuid,
+      },
+    });
+    interruptedSpans++;
+  }
+  if (process.env.LANGFUSE_DEBUG === "1") {
+    process.stderr.write(`[session-stop] interrupt detected — ${interruptedSpans} cancellation span(s) enqueued\n`);
+  }
+}
+
+// ─── Flush mode ───
+// Interrupted → flushSync (block tới khi POSTed) rồi spawnBackgroundFlush (retry safety).
+//   Lý do: user vừa Escape, có thể đóng terminal/Claude Code ngay sau → detached child
+//   có thể chưa kịp POST. Block 1-5s để đảm bảo data đến Langfuse trước khi hook return.
+// Normal turn → spawnBackgroundFlush only (non-blocking, UX-friendly).
+if (lf.isConfigured()) {
+  if (interruptDetected) {
+    try {
+      lf.flushSync(sessionId, () => {
+        try { lf.spawnBackgroundFlush(sessionId); } catch (e) { /* skip */ }
+      });
+    } catch (e) {
+      if (process.env.LANGFUSE_DEBUG === "1") {
+        process.stderr.write(`[session-stop] flushSync on interrupt failed: ${e.message}\n`);
+      }
+      try { lf.spawnBackgroundFlush(sessionId); } catch (_) { /* skip */ }
+    }
+  } else {
+    lf.spawnBackgroundFlush(sessionId);
+  }
+}
 ' <<< "$INPUT" 2>/dev/null
 
 exit 0
