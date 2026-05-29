@@ -62,11 +62,12 @@ Claude Code tự load `commands/`, `agents/`, `skills/`, `hooks/` từ plugin kh
 | `enforce-bmad-config-priority.sh` | UserPromptSubmit | Ép đọc `_bmad/*` ưu tiên consumer (`./_bmad/`) > plugin (`${CLAUDE_PLUGIN_ROOT}/_bmad/`). Detect overrides + inject context. Bypass: `SKIP_BMAD_PRIORITY=1` |
 | `run-test-mark-fixme.sh` | PostToolUse Write|Edit (async) | Sau khi Write/Edit `tests/**/*.spec.ts` → chạy `npx playwright test <file>` → mark fail tests bằng `test.fixme()` để không break CI. Cần `playwright.config.ts` + `npx`. Timeout 120s. Bypass: `SKIP_RUN_TEST=1`
 | `langfuse-score-detector.sh` | UserPromptSubmit | Detect scoring opportunity |
+| `enforce-bmad-agent-scope.sh` | PreToolUse Write\|Edit | Block khi BMAD agent đang active làm việc SAI ROLE. Detect agent từ transcript (`/bmad:bmm:agents:X` marker mới nhất, ignore sau `*dismiss`). Matrix: `pm/analyst/sm/architect/ux-designer/tech-writer` không edit code; `dev` không edit PRD/architecture; `tea` chỉ edit test code + test-design. Bypass: `SKIP_BMAD_SCOPE=1` |
 | `enforce-fixture-helper-prerequisite.sh` | PreToolUse Write\|Edit | Block viết test spec nếu import service/factory/fixture/helper CHƯA tồn tại. Buộc tạo prerequisite trước. Bypass: `SKIP_FIXTURE_PREREQ=1` |
 | `enforce-spec-tags.sh` | PreToolUse Write\|Edit | Block spec thiếu/sai tag CICD. 3 category: PRIORITY (@P0-P3 — match file name), LAYER (@BE/@FE — match path), TYPE (≥1 của @Smoke/@Sanity/@Regression/@Function/@UI/@UX). Bypass: `SKIP_SPEC_TAGS=1` |
 | `enforce-security-test-presence.sh` | PreToolUse Write|Edit | Warn (KHÔNG block) khi spec test user-input nhưng thiếu security test coverage. Detect 401/403/XSS/injection patterns, @Security/@XSS/@Auth tag, *WithoutAuth() call. Bypass: `SKIP_SECURITY_REMINDER=1`
 | `enforce-test-quality-checklist.sh` | PreToolUse Write\|Edit | Block test code vi phạm 9 rules |
-| `enforce-read-dedup.sh` | PreToolUse Read | Block đọc trùng file (cost control) |
+| `enforce-read-dedup.sh` | PreToolUse Read | Block đọc trùng file (cost control). **v2 compact-aware**: scan từ `isCompactSummary:true` marker mới nhất, reset counter sau compact. **Escape valve**: nếu Edit/Write tool báo `tool_result.is_error` chứa `"File has not been read"` trên target → auto-allow Read (fix catch-22 post-compact). Bypass: `SKIP_READ_DEDUP=1` |
 | `session-logger-tool.sh` | PostToolUse | Log tool execution |
 | `session-stop.sh` / `session-cleanup.sh` | Stop / SessionEnd | Flush logs, push langfuse |
 
@@ -136,6 +137,7 @@ Test fail ≠ test sai. KHÔNG sửa test để pass khi BE sai → log bug theo
 - Error assertion: dùng helper `parseErrorResponse`/`isApiErrorResponse`/`getApiErrorCode`. Assert `error.error.code` match `/^ERR_\d+$/` — KHÔNG hardcode code cụ thể
 - 401/403 test: fresh context + `*WithoutAuth()` / dedicated test user login
 - Type safety: KHÔNG `any`/`unknown`, cast inline interface
+- **Execute-before-complete (Rule #10):** sau khi Write/Edit `*.spec.*`, PHẢI chạy framework test của project (detect từ `package.json`: `@playwright/test` → `npx playwright test <file>`, `jest` → `npx jest`, `vitest` → `npx vitest run`) **trước khi báo task hoàn thành**. Hook `run-test-mark-fixme.sh` auto-fire PostToolUse, Claude vẫn phải verify + summarize kết quả với evidence (`N pass / M fixme / K fail`). KHÔNG báo "xong" khi chưa run. Phân loại fail theo Rule #8 decision tree.
 
 ## 9. Onboarding một consumer mới
 
@@ -156,6 +158,10 @@ Observed: trace 89fee3f7 waste ~$0.90 (12K tokens) cho narrate "thinking out lou
 - Final summary: 1-2 sentences + file list, KHÔNG re-explain strategy
 - KHÔNG repeat hook context đã có trong additionalContext
 - Read dedup: file đã đọc → dùng Grep với pattern thay vì Read full
+- **Parallel tool calls (CRITICAL — cost driver):** mọi Bash/Read/Grep/Glob/Edit **độc lập** PHẢI gom vào 1 message (1 assistant turn = N tool_use blocks). Observed trace 2658eeb4: 23 sequential tool calls × ~400K cache_read/call = **$15.68/turn**. Gom 23 → ~5 turns parallel batches = **-60% cost** (~$6/turn saved).
+  - ✅ Độc lập = không phụ thuộc output của call trước (vd: đọc 5 file khác nhau, grep 3 pattern, chạy `git status` + `git diff` + `git log`)
+  - ❌ Tuần tự = call B cần output của call A (vd: `git rev-parse HEAD` → dùng SHA cho `git diff <SHA>`)
+  - Quy tắc: trước mỗi tool call, hỏi "call này cần output của call ngay trước không?" — KHÔNG → gom chung message với call trước
 
 ## 11. Config & language (per-consumer)
 

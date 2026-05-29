@@ -25,6 +25,7 @@ description: Source of Truth cho test quality — 9 rules + 41 checklist items, 
 | **#7** | [Type Safety](#7️⃣-typescript-type-safety)                | Dùng `any`/`unknown` bypass type checking        | Mọi test - cast to inline interface  |
 | **#8** | [Test Fails ≠ Sai](#8️⃣-test-fails-≠-test-sai)            | Change test để pass khi backend sai              | Test fails - apply decision tree     |
 | **#9** | [Service Integration](#9️⃣-service-layer-integration-new) | Wrong parameters/payload/method name             | API tests - read signature first     |
+| **#10**| [Execute Before Complete](#-execute-before-complete)     | Mark done nhưng test chưa chạy → fail ở CI       | Mọi test mới/sửa - run framework trước khi báo xong |
 
 ### 📋 Quick Checklist (41 items)
 
@@ -387,6 +388,63 @@ Error: Expected 4-6 arguments, but got 7
 
 ---
 
+## 🔟 EXECUTE BEFORE COMPLETE
+
+> Mọi test mới hoặc sửa PHẢI chạy bằng framework test của project trước khi mark task done. KHÔNG được "viết xong + báo hoàn thành" mà bỏ qua execution — fail sẽ lộ ở CI và tốn 1 round-trip.
+
+### ❌ Anti-pattern
+
+```
+Claude: "Đã viết P0-login.spec.ts với 4 test cases. Xong nhé!"
+→ User push → CI fail → 2 test case sai assertion / typo selector / missing import
+```
+
+### ✅ Đúng quy trình
+
+1. **Detect framework** từ project: `package.json` có `@playwright/test` → Playwright. `jest` → Jest. `vitest` → Vitest.
+2. **Run scope hẹp** (file vừa viết / sửa, KHÔNG full suite):
+   ```bash
+   # Playwright
+   npx playwright test tests/api/{domain}/P0-{feature}.spec.ts --reporter=line
+
+   # Jest / Vitest
+   npx jest tests/{path} --runInBand
+   npx vitest run tests/{path}
+   ```
+3. **Phân loại kết quả** (apply Rule #8 decision tree):
+   - ✅ Pass all → mark complete
+   - ❌ Fail vì test logic sai → fix test, re-run
+   - ❌ Fail vì BE bug → log bug + mark `.fixme("ERR_XXX — link bug ticket")`
+   - ❌ Fail vì requirement chưa rõ → `.skip("blocked — pending PM clarify")`
+   - ⚠️ Flaky (pass/fail random) → `.fixme("flaky — investigating")`, KHÔNG retry để pass
+4. **Báo kết quả với evidence**:
+   - "Wrote 3 specs. Ran `npx playwright test`: 8 pass, 1 fixme (ERR_4021 logged), 0 fail."
+   - KHÔNG báo "xong" khi chưa run.
+
+### Auto-enforcement
+
+Hook `run-test-mark-fixme.sh` (PostToolUse async) sẽ tự động:
+- Detect file vừa Write/Edit là `*.spec.ts`
+- Chạy framework test command tương ứng
+- sed-mark test fail thành `.fixme()` với lý do từ stderr
+- Emit warning để Claude reference trong final summary
+
+Bypass khi cần (vd: test cần BE service đang down): `SKIP_RUN_TEST=1`.
+
+### Multi-framework matrix
+
+| Framework | Detect signal | Command (single file) |
+|---|---|---|
+| Playwright | `@playwright/test` in deps | `npx playwright test <file>` |
+| Jest | `jest` in deps | `npx jest <file> --runInBand` |
+| Vitest | `vitest` in deps | `npx vitest run <file>` |
+| Mocha | `mocha` in deps | `npx mocha <file>` |
+| Cypress (component) | `cypress` in deps | `npx cypress run --component --spec <file>` |
+
+→ Nếu project dùng framework khác (Cucumber, Codecept,...) → đọc `package.json scripts` để biết command chuẩn.
+
+---
+
 ## 📋 CHECKLIST KHI VIẾT TEST MỚI (41 Items)
 
 ### Pre-Implementation (6)
@@ -444,6 +502,7 @@ Error: Expected 4-6 arguments, but got 7
 - [ ]   34. Review: Có assertion "cho có" không?
 - [ ]   35. Review: Có add external knowledge không?
 - [ ]   36. **Review: Service calls correct?** No TypeScript errors
+- [ ]   37. **EXECUTE test** với framework hiện tại (Playwright: `npx playwright test <file>`) → pass HOẶC mark `.fixme()` với lý do. KHÔNG mark task complete khi chưa run.
 
 ### When Test Fails (5)
 
