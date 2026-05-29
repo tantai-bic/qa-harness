@@ -6,14 +6,9 @@
   },
   "plugins": [
     {
-      "name": "bmad-harness-plugin",
-      "source": "./",
-      "description": "[LEGACY — pending removal] BMAD QA Harness monolith. Kept until new plugins are validated end-to-end."
-    },
-    {
       "name": "bmad-workflows",
       "source": "./plugins/bmad-workflows",
-      "description": "BMAD agents + workflows + QA skills + slash commands. Knowledge/standards layer — pair with hook plugins for runtime gates."
+      "description": "BMAD agents + workflows + QA skills + slash commands + BMAD runtime guards (agent scope, output consistency, config priority). Full BMAD layer in one plugin."
     },
     {
       "name": "test-enforcement",
@@ -24,11 +19,6 @@
       "name": "cost-control",
       "source": "./plugins/cost-control",
       "description": "Cost optimization: block duplicate Read calls to avoid wasted cache_read tokens. Compact-aware with auto-allow escape valve."
-    },
-    {
-      "name": "bmad-guard",
-      "source": "./plugins/bmad-guard",
-      "description": "BMAD workflow guards: agent role scope, activation output consistency (≤250 tokens), config priority (consumer overrides plugin)."
     },
     {
       "name": "qa-context",
