@@ -3,7 +3,7 @@
 # Version: 6.0.0-alpha.20
 # Date: 2025-12-25T10:25:51.466Z
 
-project_name: sprouX-testing
+project_name: qanlity-assurance-plugin
 user_skill_level: beginner
 planning_artifacts: "{project-root}/_bmad-output/project-planning-artifacts"
 implementation_artifacts: "{project-root}/_bmad-output/implementation-artifacts"
