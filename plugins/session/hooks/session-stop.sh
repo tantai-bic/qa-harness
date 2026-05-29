@@ -32,7 +32,7 @@ const transcriptPath = data.transcript_path || "";
 if (!sessionId) process.exit(0);
 
 let lf;
-try { lf = require(path.join(cwd, ".claude", "hooks", "langfuse-helper.js")); }
+try { lf = require(process.env.CLAUDE_PLUGIN_ROOT ? path.join(process.env.CLAUDE_PLUGIN_ROOT, "hooks", "langfuse-helper.js") : path.join(cwd, ".claude", "hooks", "langfuse-helper.js")); }
 catch (e) { process.exit(0); }
 // KHÔNG gate by isConfigured — luôn enqueue + archive local. Background flush
 // chỉ POST khi configured.

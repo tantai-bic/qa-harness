@@ -50,6 +50,7 @@ tmpclaude-*-cwd
 .claude/hooks/.langfuse-queue/
 .claude/hooks/.langfuse-cursor/
 .claude/hooks/.hook-spans-pending/
+.claude/hooks/.claude/
 
 .local/
 .auth/

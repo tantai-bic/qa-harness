@@ -1,104 +1,22 @@
 {
+  "extraKnownMarketplaces": {
+    "qa-harness": {
+      "source": {
+        "source": "directory",
+        "path": "D:/Automation/qa-harness"
+      }
+    }
+  },
   "enabledPlugins": {
-    "playwright@claude-plugins-official": true
+    "playwright@claude-plugins-official": true,
+    "bmad-workflows@qa-harness": true,
+    "test-enforcement@qa-harness": true,
+    "cost-control@qa-harness": true,
+    "qa-context@qa-harness": true,
+    "consumer-setup@qa-harness": true,
+    "session@qa-harness": true,
+    "langfuse@qa-harness": true
   },
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [],
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "startup|resume|clear|compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/session-start.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash hooks/check-consumer-setup.sh"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/session-logger-init.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash hooks/enforce-roadmap-reading.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash hooks/orchestrate-test-automation.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash hooks/preload-qa-context.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash hooks/enforce-bmad-output-consistency.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/langfuse-score-detector.sh"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash hooks/enforce-test-quality-checklist.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash hooks/enforce-read-dedup.sh"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/session-logger-tool.sh"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/session-stop.sh"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/session-cleanup.sh"
-          }
-        ]
-      }
-    ]
-  }
+  "enabledMcpjsonServers": []
 }

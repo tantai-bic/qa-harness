@@ -1,59 +1,62 @@
 # qa-harness
 
-> Reusable **Claude Code plugin** đóng khung Claude vào quy trình QA-driven chuẩn hoá cho mọi project **Playwright + TypeScript** — sinh test suite consistent, đúng pattern, đủ chất lượng.
+> **Claude Code plugin marketplace** — 7 plugin độc lập đóng khung Claude vào quy trình QA-driven chuẩn hoá cho project **Playwright + TypeScript**. Consumer pick-and-choose từng plugin theo nhu cầu.
 
-`qa-harness` KHÔNG phải runtime code. Nó shape **hành vi của Claude** qua 3 layer: **Hooks** (runtime gates) + **BMAD agents** (workflow) + **Skills/Docs** (standards). Bất kỳ team Playwright nào cũng plug-in được — không tied vào 1 project cụ thể.
+`qa-harness` KHÔNG phải runtime code. Nó shape **hành vi của Claude** qua 3 layer:
+- **Hooks** (runtime gates) — 6 plugin có hook
+- **BMAD agents** (workflow) — `bmad-workflows` plugin
+- **Skills/Docs** (standards) — `bmad-workflows` plugin
+
+Bất kỳ team Playwright nào cũng plug-in được — KHÔNG tied vào 1 project cụ thể.
 
 ---
 
 ## Vì sao cần?
 
-| Vấn đề khi để Claude tự sinh test | Cách qa-harness giải |
+| Vấn đề khi để Claude tự sinh test | Plugin giải |
 |---|---|
-| Mỗi prompt ra 1 style → test suite tạp | BMAD agents + skills ép pattern POM/COM/Service/Factory/Fixture/Helper |
-| Mix P0/P1/P2 trong 1 file → CI không grep được | `enforce-test-quality-checklist.sh` block + Rule #6 trong checklist |
-| Hard-code payload → fail parallel | Factory discipline ép `create<Module>Payload()` |
-| Đọc trùng file → đốt token | `enforce-read-dedup.sh` block + cảnh báo cost |
-| Token output BMAD agent activation lệch 2× (cùng 1 prompt) | `enforce-bmad-output-consistency.sh` ép ≤250 tokens |
-| Sửa test để pass khi BE bug | Hierarchy of Truth doc — test = requirement, không phải verification |
-| Không observe được Claude làm gì | Hooks ghi span + push Langfuse (generation + 6 enforcement spans per prompt) |
+| Mỗi prompt ra 1 style → test suite tạp | `bmad-workflows` (skills) ép pattern POM/COM/Service/Factory/Fixture/Helper |
+| Mix P0/P1/P2 trong 1 file → CI không grep được | `test-enforcement` block + Rule #6 trong checklist |
+| Hard-code payload → fail parallel | `test-enforcement` (fixture-helper-prereq) ép Factory discipline |
+| Đọc trùng file → đốt token | `cost-control` block + cảnh báo cost |
+| Token output BMAD agent activation lệch 2× cùng 1 prompt | `bmad-workflows` (output-consistency guard) ép ≤250 tokens |
+| Sửa test để pass khi BE bug | Hierarchy of Truth — test = requirement, không phải verification |
+| Không observe được Claude làm gì | `session` + `langfuse` ghi span + push Langfuse |
 
 ---
 
-## Kiến trúc 3-layer
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Layer 1: HOOKS (hooks/) — runtime gates                    │
-│  Inject context, block bad actions, score quality, log      │
-├─────────────────────────────────────────────────────────────┤
-│  Layer 2: BMAD AGENTS (agents/ + _bmad/) — workflow         │
-│  dev, sm, architect, pm, tea, ux-designer, analyst, ...     │
-├─────────────────────────────────────────────────────────────┤
-│  Layer 3: SKILLS + DOCS — standards (generic) + examples    │
-│  test-quality-checklist, qa-test-case, qa-engineer          │
-└─────────────────────────────────────────────────────────────┘
-        ↓ outputs
-   Playwright + TS suite của consumer
-```
+## Marketplace structure
 
 ```
 qa-harness/
-├── .claude-plugin/plugin.json     Plugin manifest
-├── commands/                      Slash commands (/bmad:bmm:agents:dev, ...)
-├── agents/                        Sub-agents (auto-discovered)
-├── skills/                        Skills (qa-engineer, qa-test-case, test-quality-checklist)
-├── hooks/                         Event hooks + langfuse-helper.js
-│   ├── hooks.json                 Hook declarations (6 events, 13 commands)
-│   ├── check-consumer-setup.sh    SessionStart — nhắc setup file thiếu
-│   ├── enforce-*.sh               Quality gates
-│   ├── orchestrate-test-automation.sh
-│   ├── preload-qa-context.sh
-│   ├── session-{start,stop,cleanup,logger-*}.sh
-│   └── langfuse-{helper.js,push-score.sh,score-*.sh}
-├── _bmad/                         BMAD framework (agents YAML, workflows)
-└── docs/                          Templates + example (sprouX consumer)
+├── .claude-plugin/marketplace.json   ← Marketplace index (8 plugins)
+├── plugins/
+│   ├── bmad-workflows/                ← Core: BMAD agents + skills + commands + 3 guards
+│   ├── test-enforcement/              ← Pre-write quality gates (5 hooks)
+│   ├── qa-context/                    ← UserPromptSubmit context injectors (3 hooks)
+│   ├── consumer-setup/                ← Onboarding check (1 hook)
+│   ├── cost-control/                  ← Read dedup (1 hook)
+│   ├── session/                       ← Lifecycle + logging (5 hooks + langfuse-helper.js)
+│   └── langfuse/                      ← Telemetry + scoring (3 hooks + langfuse-helper.js)
+├── README.md / CLAUDE.md / MEMORY.md
+└── scripts/                            ← Install + maintenance utilities
 ```
+
+Mỗi plugin **self-contained:** có `.claude-plugin/plugin.json` riêng + `hooks/hooks.json` riêng + scripts riêng + `_hook-span-emit.sh` riêng. `langfuse-helper.js` được bundle vào cả `session` + `langfuse` để khỏi cross-plugin dependency.
+
+---
+
+## Plugin catalog
+
+| Plugin | Loại | Hooks | Mục đích chính |
+|---|---|---|---|
+| **bmad-workflows** | Knowledge + Guard | 3 (UserPromptSubmit + PreToolUse W\|E) | BMAD framework: agents, skills, commands, `_bmad/` + 3 runtime guards (agent scope, output consistency, config priority) |
+| **test-enforcement** | Quality Gate | 4 PreToolUse + 1 PostToolUse async | Spec tags, 9-rule quality checklist, fixture/helper prereq, security reminder, run-then-fixme |
+| **qa-context** | Context Injection | 3 UserPromptSubmit | Roadmap reading, test orchestration checklist, QA skill preload |
+| **consumer-setup** | Onboarding | 1 SessionStart startup | Nhắc consumer tạo file/folder bắt buộc nếu thiếu |
+| **cost-control** | Cost Optim | 1 PreToolUse Read | Block đọc trùng file (compact-aware + escape valve) |
+| **session** | Lifecycle | SessionStart, UserPromptSubmit, PostToolUse, Stop, SessionEnd | Log session, push langfuse trace, archive |
+| **langfuse** | Observability | 1 UserPromptSubmit + utilities | Score detection, score flush, accuracy/efficiency scoring |
 
 ---
 
@@ -63,7 +66,7 @@ qa-harness/
 
 ```
 your-playwright-project/
-├── _bmad/bmm/config.yaml         ★ BẮT BUỘC
+├── _bmad/bmm/config.yaml         ★ BẮT BUỘC (override plugin default)
 ├── .env                           ★ Langfuse credentials (optional)
 ├── package.json                   Playwright deps
 ├── playwright.config.ts
@@ -71,7 +74,7 @@ your-playwright-project/
 └── tests/{api,e2e}/
 ```
 
-### Bước 2 — `_bmad/bmm/config.yaml` (BẮT BUỘC, agents đọc đầu tiên)
+### Bước 2 — `_bmad/bmm/config.yaml` (BẮT BUỘC)
 
 ```yaml
 project_name: your-project
@@ -87,26 +90,29 @@ tea_use_mcp_enhancements: true
 tea_use_playwright_utils: true
 ```
 
-> **Config priority** (enforced bởi `enforce-bmad-config-priority.sh` hook):
-> 1. `./_bmad/<path>` ← **Consumer override (wins)** — file ở consumer cwd
+> **Config priority** (enforced bởi `enforce-bmad-config-priority.sh` — `bmad-workflows` plugin):
+> 1. `./_bmad/<path>` ← **Consumer override (wins)**
 > 2. `${CLAUDE_PLUGIN_ROOT}/_bmad/<path>` ← **Plugin default fallback**
 >
-> Áp dụng cho mọi file dưới `_bmad/`: `config.yaml`, `agents/*.md`, `workflows/**/*.{yaml,md}`, `tasks/*.md`, `core/**`. Consumer có thể override 1 agent / 1 workflow riêng cho project mà KHÔNG cần fork plugin — chỉ tạo file ở `./_bmad/<same-relative-path>`. Hook tự scan + report cho Claude mỗi prompt nào đang override.
+> Áp dụng cho mọi file dưới `_bmad/`: `config.yaml`, `agents/*.md`, `workflows/**/*.{yaml,md}`, `tasks/*.md`, `core/**`. Consumer override 1 agent/workflow riêng cho project mà KHÔNG cần fork — chỉ tạo file ở `./_bmad/<same-relative-path>`.
 
-### Bước 3 — Enable plugin
+### Bước 3 — Enable plugins (selective)
 
-**Cách A — Official command (recommended)** — trong Claude session:
+**Cách A — Official command** (recommended) — trong Claude session:
 
 ```bash
 cd your-playwright-project
 claude
 # Trong session:
 /plugin marketplace add tantai-bic/qa-harness
-/plugin install bmad-harness-plugin@qa-harness
-/reload-plugins                         # apply ngay (hoặc restart claude)
+/plugin install bmad-workflows@qa-harness
+/plugin install test-enforcement@qa-harness
+/plugin install qa-context@qa-harness
+/plugin install consumer-setup@qa-harness
+/plugin install session@qa-harness
+# Optional: cost-control, langfuse
+/reload-plugins
 ```
-
-Plugin tự enable sau install. Không cần edit settings.json thủ công.
 
 **Cách B — settings.json permanent** — `~/.claude/settings.json`:
 
@@ -119,23 +125,25 @@ Plugin tự enable sau install. Không cần edit settings.json thủ công.
     }
   },
   "enabledPlugins": {
-    "bmad-harness-plugin@qa-harness": true
+    "bmad-workflows@qa-harness": true,
+    "test-enforcement@qa-harness": true,
+    "qa-context@qa-harness": true,
+    "consumer-setup@qa-harness": true,
+    "session@qa-harness": true,
+    "cost-control@qa-harness": true,
+    "langfuse@qa-harness": true
   }
 }
 ```
 
-**Cách C — Ad-hoc local** (dev plugin, không cần marketplace):
+**Recommended minimum:** `bmad-workflows` + `test-enforcement` + `qa-context` + `consumer-setup` + `session`. Thêm `cost-control` + `langfuse` cho cost/observability.
+
+**Cách C — Ad-hoc local** (dev, không cần marketplace):
 
 ```bash
 cd your-playwright-project
-claude --plugin-dir /path/to/qa-harness
-```
-
-**Cách D — Tarball offline** (air-gap, bulk provisioning) — dùng `scripts/install-consumer.sh`:
-
-```bash
-bash scripts/install-consumer.sh latest ~/.qa-harness
-claude --plugin-dir ~/.qa-harness
+claude --plugin-dir /path/to/qa-harness/plugins/bmad-workflows
+# Hoặc clone toàn bộ marketplace + install riêng từng plugin
 ```
 
 ### Bước 4 — `.env` cho Langfuse (optional)
@@ -151,38 +159,46 @@ LANGFUSE_SECRET_KEY=sk-lf-xxxx
 ### Bước 5 — Verify
 
 ```bash
-claude --debug hooks --plugin-dir /path/to/qa-harness
-# /plugin list                       → bmad-harness-plugin: enabled
-# /bmad-harness-plugin:bmad:bmm:agents:dev → menu Amelia hiện ≤250 tokens
+claude --debug hooks
+# /plugin list                          → 7 plugin enabled
+# /bmad-workflows:bmad:bmm:agents:dev   → menu Amelia hiện ≤250 tokens
 ```
 
 ---
 
-## Layer 1 — Hooks inventory
+## Layer 1 — Hooks inventory (map mỗi script → plugin chủ)
 
-| Hook | Event | Vai trò | Bypass |
-|---|---|---|---|
-| `check-consumer-setup.sh` | SessionStart (startup) | Nhắc file/folder thiếu | `SKIP_SETUP_CHECK=1` |
-| `session-start.sh` | SessionStart (any) | Push trace `session-init` + env snapshot | — |
-| `session-logger-init.sh` | UserPromptSubmit | Bắt đầu log session, queue Langfuse event | — |
-| `enforce-roadmap-reading.sh` | UserPromptSubmit | Ép đọc roadmap trước khi code | `SKIP_ROADMAP_READING=1` |
-| `orchestrate-test-automation.sh` | UserPromptSubmit | Inject test-writing checklist (Rule #6, factory, terseness) | `SKIP_TEST_ORCHESTRATION=1` |
-| `preload-qa-context.sh` | UserPromptSubmit | Load QA context relevant | `SKIP_QA_PRELOAD=1` |
-| `enforce-bmad-output-consistency.sh` | UserPromptSubmit | Gate BMAD agent activation ≤250 tokens | `SKIP_BMAD_OUTPUT=1` |
-| `langfuse-score-detector.sh` | UserPromptSubmit | Detect scoring opportunity | `SKIP_SCORE_DETECTOR=1` |
-| `enforce-test-quality-checklist.sh` | PreToolUse Write\|Edit | Block test code vi phạm 9 rules | `SKIP_QUALITY_CHECKLIST=1` |
-| `enforce-read-dedup.sh` | PreToolUse Read | Block đọc trùng file | `SKIP_READ_DEDUP=1` |
-| `session-logger-tool.sh` | PostToolUse | Log tool execution |  — |
-| `session-stop.sh` | Stop | Flush hook spans + generation lên Langfuse | — |
-| `session-cleanup.sh` | SessionEnd | Final cleanup, archive | — |
+| Plugin | Hook script | Event | Vai trò | Bypass |
+|---|---|---|---|---|
+| `consumer-setup` | `check-consumer-setup.sh` | SessionStart startup | Nhắc file/folder thiếu | `SKIP_SETUP_CHECK=1` |
+| `session` | `session-start.sh` | SessionStart (startup\|resume\|clear\|compact) | Preload state, init telemetry | — |
+| `session` | `session-logger-init.sh` | UserPromptSubmit | Bắt đầu log session | — |
+| `session` | `session-logger-tool.sh` | PostToolUse | Log tool execution | — |
+| `session` | `session-stop.sh` | Stop | Flush hook spans + push langfuse | — |
+| `session` | `session-cleanup.sh` | SessionEnd | Final archive | — |
+| `langfuse` | `langfuse-score-detector.sh` | UserPromptSubmit | Detect scoring opportunity | `SKIP_SCORE_DETECTOR=1` |
+| `langfuse` | `langfuse-push-score.sh` | (manual utility) | Flush queued scores | — |
+| `langfuse` | `langfuse-score-accuracy-efficiency.sh` | (manual utility) | Compute metric | — |
+| `bmad-workflows` | `enforce-bmad-config-priority.sh` | UserPromptSubmit | Ép `_bmad/*` ưu tiên consumer | `SKIP_BMAD_PRIORITY=1` |
+| `bmad-workflows` | `enforce-bmad-output-consistency.sh` | UserPromptSubmit | Gate agent activation ≤250 tokens | `SKIP_BMAD_OUTPUT=1` |
+| `bmad-workflows` | `enforce-bmad-agent-scope.sh` | PreToolUse Write\|Edit | Block agent làm sai role | `SKIP_BMAD_SCOPE=1` |
+| `qa-context` | `enforce-roadmap-reading.sh` | UserPromptSubmit | Ép đọc roadmap | `SKIP_ROADMAP_READING=1` |
+| `qa-context` | `orchestrate-test-automation.sh` | UserPromptSubmit | Inject test-writing checklist | `SKIP_TEST_ORCHESTRATION=1` |
+| `qa-context` | `preload-qa-context.sh` | UserPromptSubmit | Load QA context | `SKIP_QA_PRELOAD=1` |
+| `test-enforcement` | `enforce-fixture-helper-prerequisite.sh` | PreToolUse Write\|Edit | Block thiếu fixture/helper | `SKIP_FIXTURE_PREREQ=1` |
+| `test-enforcement` | `enforce-spec-tags.sh` | PreToolUse Write\|Edit | Block spec thiếu tag CICD | `SKIP_SPEC_TAGS=1` |
+| `test-enforcement` | `enforce-security-test-presence.sh` | PreToolUse Write\|Edit | Warn thiếu security coverage | `SKIP_SECURITY_REMINDER=1` |
+| `test-enforcement` | `enforce-test-quality-checklist.sh` | PreToolUse Write\|Edit | Block vi phạm 9 rules | `SKIP_QUALITY_CHECKLIST=1` |
+| `test-enforcement` | `run-test-mark-fixme.sh` | PostToolUse Write\|Edit (async) | Run test → mark fail bằng fixme() | `SKIP_RUN_TEST=1` |
+| `cost-control` | `enforce-read-dedup.sh` | PreToolUse Read | Block đọc trùng file | `SKIP_READ_DEDUP=1` |
 
-**Master kill switch:** `SKIP_HOOKS=1` — tắt mọi hook.
+**Master kill switch:** `SKIP_HOOKS=1` — tắt mọi hook ở mọi plugin.
 
 ---
 
-## Layer 2 — BMAD Agents
+## Layer 2 — BMAD Agents (`bmad-workflows` plugin)
 
-Invoke qua `/bmad-harness-plugin:bmad:bmm:agents:<name>`:
+Invoke qua `/bmad-workflows:bmad:bmm:agents:<name>`:
 
 | Agent | Role | Workflow chính |
 |---|---|---|
@@ -198,20 +214,20 @@ Invoke qua `/bmad-harness-plugin:bmad:bmm:agents:<name>`:
 
 **Activation contract** (enforced bởi `enforce-bmad-output-consistency.sh`):
 - Output ≤250 tokens, KHÔNG dump session vars, KHÔNG flourish/emoji thừa
-- Menu items giữ exact wording từ `<menu>` agent YAML — KHÔNG translate
+- Menu items giữ exact wording từ `<menu>` YAML — KHÔNG translate
 - STOP sau menu, WAIT user input — KHÔNG auto-execute
 
 ---
 
-## Layer 3 — Skills (standards)
+## Layer 3 — Skills (`bmad-workflows/skills/`)
 
 | Skill | Mục đích |
 |---|---|
 | `test-quality-checklist` | 9 rules + 41 items — quality contract cho mọi test code |
-| `qa-test-case` | Entry point thiết kế test case (happy/bad/edge + 3 technique: equivalence, boundary, decision-table) |
+| `qa-test-case` | Thiết kế test case (happy/bad/edge + 4 technique: equivalence, boundary, decision-table, state-transition) |
 | `qa-engineer` | Full-stack code patterns (POM/COM/Service/Factory/Fixture/Helper) |
 
-> Skills generic — KHÔNG phụ thuộc 1 consumer cụ thể. Adapt cho consumer mới: giữ nguyên skills, chỉ thay docs/example.
+> Skills generic — KHÔNG phụ thuộc 1 consumer cụ thể. Adapt cho consumer mới: giữ nguyên skills, chỉ thay docs/example trong `bmad-workflows/docs/`.
 
 ---
 
@@ -222,7 +238,7 @@ Invoke qua `/bmad-harness-plugin:bmad:bmm:agents:<name>`:
 3. **Backend response** = implementation (có thể bug)
 4. **API-DOC** = documentation (có thể outdated)
 
-→ Test fail ≠ test sai. KHÔNG sửa test để pass khi BE sai → log bug theo `docs/templates/log-bug-api-template.md`.
+→ Test fail ≠ test sai. KHÔNG sửa test để pass khi BE sai → log bug theo `plugins/bmad-workflows/docs/templates/log-bug-api-template.md`.
 
 ---
 
@@ -240,7 +256,7 @@ Invoke qua `/bmad-harness-plugin:bmad:bmm:agents:<name>`:
 - Truyền `testName` param vào mọi service call (traceability)
 - Endpoint từ `API_ENDPOINTS` constant, KHÔNG hardcode URL
 - Import path: `@src/*` alias
-- Error assertion: dùng helper `parseErrorResponse`/`isApiErrorResponse`/`getApiErrorCode`. Assert `error.error.code` match `/^ERR_\d+$/` — KHÔNG hardcode code cụ thể
+- Error assertion: `parseErrorResponse`/`isApiErrorResponse`/`getApiErrorCode`. Assert `error.error.code` match `/^ERR_\d+$/`
 - 401/403 test: fresh context + `*WithoutAuth()` / dedicated test user login
 - Type safety: KHÔNG `any`/`unknown`, cast inline interface
 
@@ -259,22 +275,18 @@ Invoke qua `/bmad-harness-plugin:bmad:bmm:agents:<name>`:
 | `LANGFUSE_COST_TARGET/_MAX` | — | Ngưỡng scoring USD cost |
 | `LANGFUSE_W_ACCURACY/_COST/_TOKEN/_QUALITY` | — | Weight composite score |
 | `LANGFUSE_PRICING_JSON` | — | Override model pricing JSON |
-| `LANGFUSE_PROJECT_TAG` | _(auto: `_bmad/bmm/config.yaml#project_name` → cwd basename)_ | Override `project:<slug>` tag gắn vào mọi trace |
+| `LANGFUSE_PROJECT_TAG` | _(auto: `_bmad/bmm/config.yaml#project_name`)_ | Override `project:<slug>` tag |
 | `CONSUMER_REQUIRED_PATHS` | _(default list)_ | CSV path bắt buộc check ở SessionStart |
-| `CONSUMER_SETUP_SKIP_DEFAULTS` | — | `=1` bỏ default list, chỉ check `CONSUMER_REQUIRED_PATHS` |
-| `CLAUDE_PLUGIN_ROOT` | _(auto)_ | Claude set khi load plugin — KHÔNG override |
+| `CONSUMER_SETUP_SKIP_DEFAULTS` | — | `=1` bỏ default list |
+| `CLAUDE_PLUGIN_ROOT` | _(auto, per-plugin)_ | Claude set khi load plugin — KHÔNG override |
 
-**Combo debug recommended:**
+**Combo debug:**
 
 ```bash
-# Verbose
-LANGFUSE_DEBUG=1 claude --plugin-dir /path/to/qa-harness
-
-# Tắt verify (Langfuse self-host chậm)
-LANGFUSE_VERIFY_SCORES=0 LANGFUSE_DEBUG=1 claude --plugin-dir ...
-
-# Panic
-SKIP_HOOKS=1 claude --plugin-dir ...
+LANGFUSE_DEBUG=1 claude                                # Verbose
+LANGFUSE_VERIFY_SCORES=0 LANGFUSE_DEBUG=1 claude       # Tắt verify
+SKIP_HOOKS=1 claude                                    # Panic — tắt mọi hook
+SKIP_TEST_ENFORCEMENT=1 claude                         # (nếu cần tắt per-plugin — TBD)
 ```
 
 ---
@@ -283,34 +295,36 @@ SKIP_HOOKS=1 claude --plugin-dir ...
 
 Observed: trace lãng phí ~$0.90 (12K tokens) cho narrate "thinking out loud".
 
-**HARD RULES** (enforced qua orchestrate hook):
+**HARD RULES** (enforced qua `qa-context/orchestrate-test-automation.sh`):
 - Status message giữa actions: ≤50 tokens, KHÔNG recap đã làm gì
 - Action TRƯỚC, explain SAU (chỉ khi user hỏi)
 - Final summary: 1-2 sentences + file list, KHÔNG re-explain strategy
 - KHÔNG repeat hook context đã có trong additionalContext
-- Read dedup: file đã đọc → dùng Grep với pattern thay vì Read full
+- Read dedup: file đã đọc → Grep với pattern thay vì Read full
 
 ---
 
 ## Onboarding 1 consumer mới (TL;DR)
 
-1. Install plugin (Cách A hoặc B ở trên)
+1. Install plugins (Cách A hoặc B) — minimum 5 plugin (`bmad-workflows` + `test-enforcement` + `qa-context` + `consumer-setup` + `session`)
 2. Tạo `_bmad/bmm/config.yaml` ở consumer root
-3. (Optional) Tạo `.env` Langfuse credentials
-4. Tạo docs riêng cho consumer (`docs/PROJECT-STRUCTURE.md`, `docs/roadmap/`) — kiến trúc generic đã có sẵn ở `skills/qa-engineer/architecture.md`
+3. (Optional) Tạo `.env` Langfuse credentials + enable `langfuse` plugin
+4. Tạo docs riêng cho consumer (`docs/PROJECT-STRUCTURE.md`, `docs/roadmap/`) — kiến trúc generic đã có sẵn ở `plugins/bmad-workflows/skills/qa-engineer/architecture.md`
 5. (Optional) `.mcp.json` ở consumer root nếu cần MCP — auto-approve qua `enableAllProjectMcpServers: true`
 6. Verify: `claude --debug hooks` → kiểm `.claude/session-logs/` có entry mới
-7. Smoke test: `/bmad-harness-plugin:bmad:bmm:agents:dev` → activation ≤250 tokens
+7. Smoke test: `/bmad-workflows:bmad:bmm:agents:dev` → activation ≤250 tokens
 
 ---
 
 ## Critical guardrails
 
-- Repo này shape **BEHAVIOR của Claude**, không phải runtime code → edit hooks/agents/docs cẩn thận, pipe-test trước khi commit
-- Hook fail silent = settings.json malformed → validate JSON sau mọi edit
+- Repo này shape **BEHAVIOR của Claude**, không phải runtime code → edit hooks/agents/skills cẩn thận, pipe-test trước khi commit
+- Hook fail silent = `hooks.json` malformed → validate JSON sau mọi edit
 - BMAD agent activation phải theo template — vi phạm bị `enforce-bmad-output-consistency.sh` flag
-- Output project (consumer Playwright suite) là **target**, không tạo `src/`, `tests/`, `package.json` ở repo này
-- Khi update standards trong `skills/qa-test-case/` → version bump + ghi changelog, consumers downstream phụ thuộc
+- Output project (consumer Playwright suite) là **target**, KHÔNG tạo `src/`, `tests/`, `package.json` ở repo này
+- Khi update standards trong `plugins/bmad-workflows/skills/qa-test-case/` → version bump + ghi changelog
+- **Cross-plugin shared lib:** `langfuse-helper.js` được copy vào CẢ `session/` và `langfuse/` plugin — sửa lib phải sửa đồng bộ cả 2 file
+- `_hook-span-emit.sh` được bundle riêng vào mỗi plugin có hook (pattern identical)
 
 ---
 
