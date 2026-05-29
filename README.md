@@ -259,6 +259,7 @@ Invoke qua `/bmad-harness-plugin:bmad:bmm:agents:<name>`:
 | `LANGFUSE_COST_TARGET/_MAX` | — | Ngưỡng scoring USD cost |
 | `LANGFUSE_W_ACCURACY/_COST/_TOKEN/_QUALITY` | — | Weight composite score |
 | `LANGFUSE_PRICING_JSON` | — | Override model pricing JSON |
+| `LANGFUSE_PROJECT_TAG` | _(auto: `_bmad/bmm/config.yaml#project_name` → cwd basename)_ | Override `project:<slug>` tag gắn vào mọi trace |
 | `CONSUMER_REQUIRED_PATHS` | _(default list)_ | CSV path bắt buộc check ở SessionStart |
 | `CONSUMER_SETUP_SKIP_DEFAULTS` | — | `=1` bỏ default list, chỉ check `CONSUMER_REQUIRED_PATHS` |
 | `CLAUDE_PLUGIN_ROOT` | _(auto)_ | Claude set khi load plugin — KHÔNG override |

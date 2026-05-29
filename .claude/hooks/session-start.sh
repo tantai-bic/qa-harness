@@ -138,12 +138,37 @@ if (!fs.existsSync(metaFile)) {
   fs.writeFileSync(metaFile, meta, "utf-8");
 }
 
+// ─── Resolve project tag (env override → consumer config → plugin config → cwd basename) ──
+function slugifyProjectTag(s) {
+  return String(s).toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "unknown";
+}
+function resolveProjectName() {
+  const envOverride = process.env.LANGFUSE_PROJECT_TAG;
+  if (envOverride && envOverride.trim()) return envOverride.trim();
+  const candidates = [path.join(cwd, "_bmad", "bmm", "config.yaml")];
+  if (process.env.CLAUDE_PLUGIN_ROOT) {
+    candidates.push(path.join(process.env.CLAUDE_PLUGIN_ROOT, "_bmad", "bmm", "config.yaml"));
+  }
+  for (const f of candidates) {
+    try {
+      const m = fs.readFileSync(f, "utf-8").match(/^\s*project_name\s*:\s*(.+?)\s*$/m);
+      if (m) {
+        const name = m[1].replace(/^["\x27]+|["\x27]+$/g, "").trim();
+        if (name) return name;
+      }
+    } catch (_) {}
+  }
+  return path.basename(cwd) || "unknown";
+}
+const projectTag = `project:${slugifyProjectTag(resolveProjectName())}`;
+
 // ─── Build trace tags ──────────────────────────────────────────────────────
 const tags = [
   "session-start",
   `source:${source}`,
   harnessOff ? "harness-off" : "harness",
   lfConfigured ? "lf-configured" : "lf-missing-creds",
+  projectTag,
 ];
 
 const sourceIcon = ({ startup: "🟢", resume: "🔁", clear: "🧹", compact: "🗜️" })[source] || "🟢";
@@ -151,7 +176,7 @@ const traceName = `${sourceIcon} session-start · ${source}`;
 
 // ─── Enqueue Langfuse trace (luôn enqueue → local archive + queue retry) ───
 try {
-  const lf = require(path.join(cwd, ".claude", "hooks", "langfuse-helper.js"));
+  const lf = require(process.env.CLAUDE_PLUGIN_ROOT ? path.join(process.env.CLAUDE_PLUGIN_ROOT, "hooks", "langfuse-helper.js") : path.join(cwd, ".claude", "hooks", "langfuse-helper.js"));
   lf.enqueueTrace(sessionId, {
     traceId: `${safeSession}-init`,
     name: traceName,

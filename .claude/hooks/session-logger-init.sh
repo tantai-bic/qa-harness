@@ -136,6 +136,30 @@ const traceTags = [];
 const skipHooks = process.env.SKIP_HOOKS === "1";
 traceTags.push(skipHooks ? "harness-off" : "harness");
 
+// ─── Project tag (env override → consumer config → plugin config → cwd basename) ──
+function slugifyProjectTag(s) {
+  return String(s).toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "unknown";
+}
+function resolveProjectName() {
+  const envOverride = process.env.LANGFUSE_PROJECT_TAG;
+  if (envOverride && envOverride.trim()) return envOverride.trim();
+  const candidates = [path.join(cwd, "_bmad", "bmm", "config.yaml")];
+  if (process.env.CLAUDE_PLUGIN_ROOT) {
+    candidates.push(path.join(process.env.CLAUDE_PLUGIN_ROOT, "_bmad", "bmm", "config.yaml"));
+  }
+  for (const f of candidates) {
+    try {
+      const m = fs.readFileSync(f, "utf-8").match(/^\s*project_name\s*:\s*(.+?)\s*$/m);
+      if (m) {
+        const name = m[1].replace(/^["\x27]+|["\x27]+$/g, "").trim();
+        if (name) return name;
+      }
+    } catch (_) {}
+  }
+  return path.basename(cwd) || "unknown";
+}
+traceTags.push(`project:${slugifyProjectTag(resolveProjectName())}`);
+
 // ─── bmad detection (existing) ───
 const bmadPatterns = [
   /\/bmad:/i,
@@ -241,7 +265,7 @@ const traceName = buildTraceName(nextIdx, prompt);
 // ─── Langfuse trace enqueue (luôn enqueue → archive local + queue retry) ───
 // Background flush chỉ POST khi LANGFUSE_PUBLIC_KEY + SECRET_KEY set.
 try {
-  const lf = require(path.join(cwd, ".claude", "hooks", "langfuse-helper.js"));
+  const lf = require(process.env.CLAUDE_PLUGIN_ROOT ? path.join(process.env.CLAUDE_PLUGIN_ROOT, "hooks", "langfuse-helper.js") : path.join(cwd, ".claude", "hooks", "langfuse-helper.js"));
   const traceId = `${safeSession}-${idxStr}`;
   lf.enqueueTrace(sessionId, {
     traceId,
