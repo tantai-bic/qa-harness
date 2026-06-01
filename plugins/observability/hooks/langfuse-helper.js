@@ -123,6 +123,11 @@ function computeCostDetails(model, usageDetails) {
 }
 
 function isConfigured() {
+    // SKIP_LANGFUSE=1 → caller treats Langfuse as not configured → HTTP push
+    // bị bypass (postBatch / flushSync / spawnBackgroundFlush all early-return)
+    // nhưng enqueue + archiveLocally vẫn chạy → session log local KHÔNG bị ảnh hưởng.
+    // Master SKIP_HOOKS=1 cũng kích hoạt cùng hành vi để consistent với các hook khác.
+    if (process.env.SKIP_LANGFUSE === '1' || process.env.SKIP_HOOKS === '1') return false;
     return !!(PUBLIC_KEY && SECRET_KEY);
 }
 

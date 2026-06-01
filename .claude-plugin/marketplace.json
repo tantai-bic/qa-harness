@@ -31,14 +31,9 @@
       "description": "SessionStart startup check nudging consumers to create required files/folders (BMAD config, roadmap, playwright config, src/, tests/)."
     },
     {
-      "name": "session",
-      "source": "./plugins/session",
-      "description": "Session lifecycle + logging: start/stop/cleanup/logger-init/logger-tool. Bundles langfuse-helper.js for telemetry."
-    },
-    {
-      "name": "langfuse",
-      "source": "./plugins/langfuse",
-      "description": "Langfuse telemetry & scoring: score-detector hook + push-score / accuracy-efficiency utilities. Bundles langfuse-helper.js."
+      "name": "observability",
+      "source": "./plugins/observability",
+      "description": "Session lifecycle (start/stop/cleanup/logger-init/logger-tool) + Langfuse telemetry & scoring (score-detector + push-score + accuracy-efficiency). Single langfuse-helper.js (no duplication). Granular SKIP_LANGFUSE=1 disables Langfuse push only — session logs vẫn chạy."
     }
   ]
 }

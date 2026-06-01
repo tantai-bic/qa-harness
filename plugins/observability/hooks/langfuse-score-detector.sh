@@ -9,7 +9,7 @@
 #   - EN: "evaluate trace", "evaluate session", "score trace", "rate session",
 #         "give score", "rate trace"
 #
-# Bypass: SKIP_HOOKS=1 hoặc SKIP_SCORE_DETECTOR=1
+# Bypass: SKIP_HOOKS=1 (master) | SKIP_LANGFUSE=1 (plugin-langfuse-only) | SKIP_SCORE_DETECTOR=1 (just this hook)
 
 set -uo pipefail
 
@@ -18,9 +18,9 @@ INPUT=$(cat)
 SPAN_INPUT_JSON="$INPUT"
 source "$(dirname "$0")/_hook-span-emit.sh"
 
-if [[ "${SKIP_HOOKS:-0}" == "1" || "${SKIP_SCORE_DETECTOR:-0}" == "1" ]]; then
+if [[ "${SKIP_HOOKS:-0}" == "1" || "${SKIP_LANGFUSE:-0}" == "1" || "${SKIP_SCORE_DETECTOR:-0}" == "1" ]]; then
   SPAN_DECISION="bypass"
-  [[ "${SKIP_HOOKS:-0}" == "1" ]] && SPAN_BYPASS="SKIP_HOOKS" || SPAN_BYPASS="SKIP_SCORE_DETECTOR"
+  if [[ "${SKIP_HOOKS:-0}" == "1" ]]; then SPAN_BYPASS="SKIP_HOOKS"; elif [[ "${SKIP_LANGFUSE:-0}" == "1" ]]; then SPAN_BYPASS="SKIP_LANGFUSE"; else SPAN_BYPASS="SKIP_SCORE_DETECTOR"; fi
   exit 0
 fi
 
@@ -123,7 +123,7 @@ const msg = [
   "",
   "Nếu user muốn nhiều score (multi-dimensional eval) → chạy bash command nhiều lần, mỗi lần 1 name.",
   "",
-  "Bypass: SKIP_SCORE_DETECTOR=1 hoặc SKIP_HOOKS=1.",
+  "Bypass: SKIP_SCORE_DETECTOR=1 | SKIP_LANGFUSE=1 | SKIP_HOOKS=1.",
 ].join("\n");
 
 process.stdout.write(JSON.stringify({
