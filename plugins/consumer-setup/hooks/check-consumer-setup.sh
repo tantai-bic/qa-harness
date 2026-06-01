@@ -6,23 +6,19 @@
 # session đầu tiên (matcher=startup). KHÔNG fire khi resume/clear/compact để
 # tránh nhiễu.
 #
-# Default required paths:
-#   _bmad/bmm/config.yaml                            BMAD config
-#   docs/roadmap/README.md                           Roadmap index
-#   docs/templates/log-bug-api-template.md           Bug log template
+# Default required paths (base project structure only):
 #   package.json                                     Project manifest
 #   playwright.config.ts|.js                         Playwright config
-#   src/constants/api.constants.ts                   Endpoints
-#   src/fixtures/                                    Fixture dir
-#   src/pages | src/page-objects | tests/pages       POM (Page Object Model)
-#   src/components | src/component-objects           COM (Component Object Model)
-#   src/helpers | src/utils                          Helper functions
-#   src/factories | src/data-factories               Data Factory
 #   tests/                                           Test dir
+#
+# Plugin-specific checks are handled by each plugin's own check-setup.sh:
+#   bmad-workflows  → _bmad/bmm/config.yaml, docs/roadmap/, docs/templates/
+#   test-enforcement → src/fixtures/, src/pages/, src/components/, src/helpers/, src/factories/, src/constants/
+#   qa-context       → docs/roadmap/README.md
+#   observability    → LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY
 #
 # Default required packages (declared trong package.json deps/devDeps):
 #   playwright (or @playwright/test)                 Test runner
-#   husky                                            Git hooks
 #   lint-staged                                      Format-on-commit
 #   eslint                                           Linter
 #   prettier                                         Formatter
@@ -91,17 +87,8 @@ fi
 
 # ─── Build required paths list ──────────────────────────────────────────────
 DEFAULT_PATHS=(
-  "_bmad/bmm/config.yaml|BMAD config|consumer phải set project_name, user_name, communication_language"
-  "docs/roadmap/README.md|Roadmap index|cần cho enforce-roadmap-reading hook discovery"
-  "docs/templates/log-bug-api-template.md|Bug log template|cho hierarchy of truth — log BE bug, không sửa test"
   "package.json|NPM manifest|Playwright + TS dependencies"
   "playwright.config.ts|playwright.config.js|Playwright config|timeouts, projects, retries"
-  "src/constants/api.constants.ts|API_ENDPOINTS|endpoint constants — KHÔNG hardcode URL"
-  "src/fixtures|Fixture dir|auto-cleanup fixtures (Rule 4a — import test từ @src/fixtures)"
-  "src/pages|src/page-objects|tests/pages|POM (Page Object Model)|page abstractions — encapsulate selectors + actions"
-  "src/components|src/component-objects|COM (Component Object Model)|reusable component fragments (login form, nav, modal)"
-  "src/helpers|src/utils|Helper functions|API/E2E helpers (parseErrorResponse, *WithoutAuth, response asserts)"
-  "src/factories|src/data-factories|Data Factory|parallel-safe payload factories (createXPayload — Rule 3)"
   "tests|Test dir|tests/api/, tests/e2e/"
 )
 
@@ -154,7 +141,6 @@ MISSING_PACKAGES_JSON=$(node -e '
 const fs = require("fs");
 const required = [
   { key: "playwright",  aliases: ["playwright", "@playwright/test"] },
-  { key: "husky",       aliases: ["husky"] },
   { key: "lint-staged", aliases: ["lint-staged"] },
   { key: "eslint",      aliases: ["eslint"] },
   { key: "prettier",    aliases: ["prettier"] },
@@ -232,14 +218,17 @@ const lines = [
   "  • Sau khi fix xong, restart Claude session để hook re-check",
   "",
   "Capability bị degrade theo từng item missing:",
-  "  • _bmad/bmm/config.yaml             → BMAD agents activation fail",
-  "  • docs/roadmap/                     → enforce-roadmap-reading silent (no roadmap to suggest)",
-  "  • src/constants/api.constants.ts    → test vi phạm Rule: hardcode URL",
-  "  • src/fixtures/                     → spec không import @src/fixtures (Rule 4a)",
-  "  • src/pages, src/components         → qa-engineer skill kỳ vọng POM/COM layout",
-  "  • src/helpers, src/factories        → helper + factory pattern (Rule 3) bị vi phạm",
-  "  • playwright / husky / lint-staged  → CI gate (test runner + format-on-commit) hỏng",
+  "  • package.json                      → không detect được test framework",
+  "  • playwright.config.ts              → run-test-mark-fixme.sh không tìm được config",
+  "  • tests/                            → không có nơi chứa test specs",
+  "  • playwright / lint-staged          → CI gate (test runner + format-on-commit) hỏng",
   "  • eslint / prettier                 → code quality enforcement off",
+  "",
+  "Plugin-specific checks (xem thêm):",
+  "  • bmad-workflows   → _bmad/bmm/config.yaml, docs/roadmap/, docs/templates/",
+  "  • test-enforcement → src/fixtures/, src/pages/, src/helpers/, src/factories/",
+  "  • qa-context       → docs/roadmap/README.md",
+  "  • observability    → LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY",
 ];
 
 if (playwrightDeclared) {
