@@ -8,18 +8,19 @@
 
 ## 1. Minimum Required Files & Folders
 
-Đây là điều kiện CẦN để Playwright runner + Git hooks hoạt động:
+Đây là điều kiện CẦN để Playwright runner + Git hooks + TypeScript hoạt động:
 
 ```
 consumer-project/
 ├── package.json                   NPM manifest
 ├── playwright.config.ts           Playwright config (hoặc .js)
+├── tsconfig.json                  TypeScript config (scope hẹp — chỉ src/ + tests/)
 ├── tests/                         Test root directory
 └── .husky/
     └── pre-commit                 Git pre-commit hook (chạy lint-staged)
 ```
 
-Setup check pass khi 5 mục trên tồn tại. Cấu trúc bên trong `tests/` (api / e2e, naming
+Setup check pass khi 6 mục trên tồn tại. Cấu trúc bên trong `tests/` (api / e2e, naming
 convention, priority split) là phạm vi của test-organization, KHÔNG enforce ở đây.
 
 ## 2. Required Packages
@@ -29,6 +30,7 @@ Declared trong `package.json` (`dependencies` hoặc `devDependencies`):
 | Package | Vai trò | Install |
 |---------|---------|---------|
 | `@playwright/test` | Test framework + runner | `npm i -D @playwright/test && npx playwright install` |
+| `typescript` | TS compiler (tsc) cho type-check | `npm i -D typescript` |
 | `husky` | Git hooks manager | `npm i -D husky && npx husky init` |
 | `lint-staged` | Format-on-commit gate (chạy từ husky pre-commit) | `npm i -D lint-staged` |
 | `eslint` | Linter | `npm i -D eslint` |
@@ -55,7 +57,54 @@ export default defineConfig({
 
 Config này đủ chạy. Mở rộng projects/devices/reporters tuỳ nhu cầu — không phải core setup.
 
-## 4. Husky Setup (Git pre-commit hook)
+## 4. tsconfig.json — Narrow Scope cho tsc
+
+`tsc` chỉ scan `src/`, `tests/`, và `playwright.config.ts` — KHÔNG scan toàn project:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["src/*"]
+    },
+    "types": ["node", "@playwright/test"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "playwright.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "playwright-report",
+    "test-results"
+  ]
+}
+```
+
+**Lý do narrow scope:**
+- Tránh tsc check những file không liên quan (config khác, build output, vendor)
+- Build/type-check nhanh hơn — chỉ duyệt file mình control
+- `@src/*` path alias bắt buộc cho test imports (test code dùng `import { x } from '@src/utils/...'`)
+
+**Verify tsc setup:**
+
+```bash
+npx tsc --noEmit                       # type-check toàn bộ include scope
+npx tsc --noEmit --listFiles | wc -l   # đếm số file tsc scan — phải nhỏ
+```
+
+## 5. Husky Setup (Git pre-commit hook)
 
 `npx husky init` tạo:
 - `.husky/pre-commit` (default: chạy `npm test`)
@@ -84,44 +133,50 @@ npx lint-staged
 
 Verify: `git add . && git commit -m "test"` → husky phải fire `lint-staged`.
 
-## 5. Bootstrap Commands (từ zero)
+## 6. Bootstrap Commands (từ zero)
 
 ```bash
-# 1. Khởi tạo project + Playwright
+# 1. Khởi tạo project + Playwright + TypeScript
 npm init -y
-npm i -D @playwright/test
+npm i -D @playwright/test typescript
 npx playwright install
 
-# 2. Linting + formatter toolchain
+# 2. Tạo tsconfig.json (xem Section 4) — narrow scope src/ + tests/ + playwright.config.ts
+#    Copy template từ Section 4 vào tsconfig.json
+
+# 3. Linting + formatter toolchain
 npm i -D eslint prettier lint-staged
 
-# 3. Husky (Git pre-commit hook)
+# 4. Husky (Git pre-commit hook)
 npm i -D husky
 npx husky init                       # tạo .husky/ + .husky/pre-commit + script prepare
 
-# 4. Edit .husky/pre-commit để chạy lint-staged thay vì `npm test`
+# 5. Edit .husky/pre-commit để chạy lint-staged thay vì `npm test`
 echo 'npx lint-staged' > .husky/pre-commit
 
-# 5. Xác nhận structure
-ls package.json playwright.config.ts tests/ .husky/pre-commit
+# 6. Xác nhận structure
+ls package.json playwright.config.ts tsconfig.json tests/ .husky/pre-commit
+npx tsc --noEmit                     # smoke test: type-check pass
 ```
 
 Sau bước này, restart Claude session → `check-playwright-setup.sh` silent (pass).
 
-## 6. Capability Degradation
+## 7. Capability Degradation
 
 | Missing | Hậu quả |
 |---------|---------|
 | `package.json` | Không detect được test framework |
 | `playwright.config.ts` | `run-test-mark-fixme.sh` không tìm được config |
+| `tsconfig.json` | tsc dùng default scope (scan toàn project) → type-check sai/chậm |
 | `tests/` | Không có nơi chứa test specs |
 | `@playwright/test` | Playwright runner unavailable |
+| `typescript` | tsc không chạy được → type-check off |
 | `.husky/` + `.husky/pre-commit` | Git pre-commit hook KHÔNG fire — lint/test bypass |
 | `husky` package | `npm install` không tự install Git hooks |
 | `lint-staged` | Format-on-commit gate hỏng |
 | `eslint` / `prettier` | Code quality enforcement off |
 
-## 7. Bypass & Customization
+## 8. Bypass & Customization
 
 ```bash
 # Bypass setup check (per-session)
@@ -137,7 +192,7 @@ CONSUMER_SETUP_SKIP_DEFAULTS=1 claude
 SKIP_HOOKS=1 claude
 ```
 
-## 8. Plugin-specific Setup (Other Plugins)
+## 9. Plugin-specific Setup (Other Plugins)
 
 Mỗi plugin trong marketplace có setup check riêng. Liệt kê ở đây để consumer biết
 tổng thể, KHÔNG enforce ở skill này:
@@ -148,9 +203,9 @@ tổng thể, KHÔNG enforce ở skill này:
 | `test-enforcement` | `src/fixtures/`, `src/pages/`, `src/helpers/`, `src/factories/`, `src/constants/` |
 | `observability` | `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY` in env |
 
-## 9. Next Steps Sau Khi Setup
+## 10. Next Steps Sau Khi Setup
 
-Sau khi 5 core files/folders + 5 packages đã có → setup CORE đã xong.
+Sau khi 6 core files/folders + 6 packages đã có → setup CORE đã xong.
 
 Để bắt đầu viết test:
 - Đọc `skills/playwright-test-organization/SKILL.md` (Rule #6, service/factory, hierarchy)
