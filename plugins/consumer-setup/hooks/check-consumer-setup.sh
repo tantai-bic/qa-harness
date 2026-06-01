@@ -18,14 +18,9 @@
 #   observability    → LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY
 #
 # Default required packages (declared trong package.json deps/devDeps):
-#   playwright (or @playwright/test)                 Test runner
 #   lint-staged                                      Format-on-commit
 #   eslint                                           Linter
 #   prettier                                         Formatter
-#
-# Playwright browser binary install (`npx playwright install`) INTENTIONALLY
-# skipped — hook chỉ in reminder khi playwright declared. Reason: install browser
-# tốn thời gian + bandwidth, để user tự chạy khi sẵn sàng.
 #
 # Detection strategy: check declared trong package.json (deps/devDeps), KHÔNG
 # stat node_modules/<pkg>. Lý do: Yarn PnP không có node_modules, pnpm với
@@ -140,7 +135,6 @@ process.stdout.write(String(m.length));
 MISSING_PACKAGES_JSON=$(node -e '
 const fs = require("fs");
 const required = [
-  { key: "playwright",  aliases: ["playwright", "@playwright/test"] },
   { key: "lint-staged", aliases: ["lint-staged"] },
   { key: "eslint",      aliases: ["eslint"] },
   { key: "prettier",    aliases: ["prettier"] },
@@ -160,14 +154,6 @@ const m = JSON.parse(process.argv[1] || "[]");
 process.stdout.write(String(m.length));
 ' "$MISSING_PACKAGES_JSON" 2>/dev/null)
 
-# Playwright declared? — chỉ in browser-install reminder nếu có
-PLAYWRIGHT_DECLARED=$(node -e '
-try {
-  const p = JSON.parse(require("fs").readFileSync("package.json", "utf-8"));
-  const all = { ...(p.dependencies || {}), ...(p.devDependencies || {}) };
-  process.stdout.write((all["playwright"] || all["@playwright/test"]) ? "1" : "0");
-} catch { process.stdout.write("0"); }
-' 2>/dev/null)
 
 if [[ "${MISSING_COUNT:-0}" == "0" && "${MISSING_PACKAGES_COUNT:-0}" == "0" ]]; then
   SPAN_DECISION="skip"
@@ -179,7 +165,6 @@ fi
 OUT=$(node -e '
 const missing = JSON.parse(process.argv[1] || "[]");
 const missingPkgs = JSON.parse(process.argv[2] || "[]");
-const playwrightDeclared = process.argv[3] === "1";
 
 const pathItems = missing.map((m, i) => {
   const pathStr = m.candidates.length > 1
@@ -221,7 +206,7 @@ const lines = [
   "  • package.json                      → không detect được test framework",
   "  • playwright.config.ts              → run-test-mark-fixme.sh không tìm được config",
   "  • tests/                            → không có nơi chứa test specs",
-  "  • playwright / lint-staged          → CI gate (test runner + format-on-commit) hỏng",
+  "  • lint-staged                        → format-on-commit gate hỏng",
   "  • eslint / prettier                 → code quality enforcement off",
   "",
   "Plugin-specific checks (xem thêm):",
@@ -231,14 +216,6 @@ const lines = [
   "  • observability    → LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY",
 ];
 
-if (playwrightDeclared) {
-  lines.push(
-    "",
-    "› Lưu ý: hook KHÔNG tự cài browser binary cho Playwright.",
-    "  Khi nào sẵn sàng chạy test, nhớ:  npx playwright install",
-    "  (skip cũng được, Playwright sẽ tự nhắc khi launch browser lần đầu)"
-  );
-}
 
 lines.push(
   "",
@@ -253,7 +230,7 @@ const out = {
   }
 };
 process.stdout.write(JSON.stringify(out));
-' "$MISSING_JSON" "$MISSING_PACKAGES_JSON" "$PLAYWRIGHT_DECLARED")
+' "$MISSING_JSON" "$MISSING_PACKAGES_JSON")
 
 printf '%s' "$OUT"
 SPAN_DECISION="inject"
