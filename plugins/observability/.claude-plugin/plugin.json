@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "observability",
+  "displayName": "Observability — Session Lifecycle + Langfuse Telemetry",
+  "description": "Unified observability plugin: session lifecycle hooks (start/stop/cleanup/logger-init/logger-tool) + Langfuse telemetry & scoring (score-detector + push-score + accuracy-efficiency). Single bundled langfuse-helper.js (no cross-plugin duplication). Granular control: SKIP_LANGFUSE=1 disables only Langfuse push behavior while keeping session logs active.",
+  "version": "1.0.0",
+  "author": {
+    "name": "TanTai-BIC"
+  },
+  "keywords": [
+    "session",
+    "logging",
+    "telemetry",
+    "langfuse",
+    "scoring",
+    "observability",
+    "lifecycle",
+    "hooks"
+  ],
+  "components": {
+    "hooks": "./hooks"
+  }
+}

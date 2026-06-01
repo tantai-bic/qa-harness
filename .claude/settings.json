@@ -1,12 +1,6 @@
 {
-  "extraKnownMarketplaces": {
-    "qa-harness": {
-      "source": {
-        "source": "directory",
-        "path": "D:/Automation/qa-harness"
-      }
-    }
-  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [],
   "enabledPlugins": {
     "playwright@claude-plugins-official": true,
     "bmad-workflows@qa-harness": true,
@@ -14,9 +8,14 @@
     "cost-control@qa-harness": true,
     "qa-context@qa-harness": true,
     "consumer-setup@qa-harness": true,
-    "session@qa-harness": true,
-    "langfuse@qa-harness": true
+    "observability@qa-harness": true
   },
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": []
+  "extraKnownMarketplaces": {
+    "qa-harness": {
+      "source": {
+        "source": "directory",
+        "path": "D:/Automation/qa-harness"
+      }
+    }
+  }
 }
