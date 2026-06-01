@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
-  "name": "qa-harness",
+  "name": "qa-harness-dev",
   "owner": {
     "name": "TanTai-BIC"
   },
