@@ -21,14 +21,9 @@
       "description": "Cost optimization: block duplicate Read calls to avoid wasted cache_read tokens. Compact-aware with auto-allow escape valve."
     },
     {
-      "name": "qa-context",
-      "source": "./plugins/qa-context",
-      "description": "UserPromptSubmit context injectors: preload skill docs, enforce roadmap reading, orchestrate test automation checklist."
-    },
-    {
-      "name": "consumer-setup",
-      "source": "./plugins/consumer-setup",
-      "description": "SessionStart startup check nudging consumers to create required files/folders (BMAD config, roadmap, playwright config, src/, tests/)."
+      "name": "playwright-qa-engineer",
+      "source": "./plugins/playwright-qa-engineer",
+      "description": "All-in-one Playwright QA: setup validation (SessionStart) + roadmap enforcement + test orchestration + skill preloading (UserPromptSubmit). Includes 3 skill docs: playwright-setup, playwright-test-organization, playwright-qa-workflow."
     },
     {
       "name": "observability",

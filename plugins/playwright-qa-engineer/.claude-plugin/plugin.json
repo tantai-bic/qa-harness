@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "playwright-qa-engineer",
+  "displayName": "Playwright QA Engineer",
+  "description": "All-in-one Playwright QA plugin: setup validation (SessionStart) + roadmap enforcement + test orchestration + skill doc preloading (UserPromptSubmit). Includes 3 skill docs: playwright-setup, playwright-test-organization, playwright-qa-workflow.",
+  "version": "1.0.0",
+  "author": {
+    "name": "TanTai-BIC"
+  },
+  "keywords": [
+    "playwright",
+    "qa",
+    "setup-check",
+    "test-orchestration",
+    "roadmap",
+    "context-preload",
+    "skills",
+    "hooks"
+  ],
+  "components": {
+    "hooks": "./hooks",
+    "skills": "./skills"
+  }
+}

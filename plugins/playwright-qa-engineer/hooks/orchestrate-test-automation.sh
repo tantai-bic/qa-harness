@@ -58,7 +58,7 @@ if [[ -n "$TRANSCRIPT_PATH" && -f "$TRANSCRIPT_PATH" ]]; then
   if grep -qE 'skills/test-quality-checklist/SKILL\.md|TEST-QUALITY-CHECKLIST\.md' "$TRANSCRIPT_PATH" 2>/dev/null; then
     CHECKLIST_READ=1
   fi
-  # Detect preload-qa-context hook đã inject content trong session chưa
+  # Detect preload-playwright-context hook đã inject content trong session chưa
   # → Nếu rồi: skip toàn bộ Section B (qa-engineer + qa-test-case docs đã có trong context)
   if grep -qF '🎓 QA CONTEXT PRELOADED' "$TRANSCRIPT_PATH" 2>/dev/null; then
     QA_PRELOADED=1
@@ -185,7 +185,7 @@ const scopeLine = moduleHint
   : "  Scope: nếu user chỉ nêu 1 module/feature → CHỈ làm đúng module đó, KHÔNG auto-generate cho cả phase.";
 
 // Required reads — step ①②③④ conditional on transcript scan
-// Khi preload-qa-context đã fire → SKIP Section B (skill docs đã có trong context)
+// Khi preload-playwright-context đã fire → SKIP Section B (skill docs đã có trong context)
 // Tiết kiệm ~2K tokens/prompt
 let readsBlock;
 if (qaPreloaded) {

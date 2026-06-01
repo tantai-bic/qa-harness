@@ -1,5 +1,5 @@
 #!/bin/bash
-# SessionStart hook: check consumer đã setup folder convention + toolchain
+# SessionStart hook: check consumer đã setup Playwright project structure + toolchain
 # packages bắt buộc chưa.
 #
 # Khi consumer install plugin lần đầu, missing nhiều setup → hook nhắc trong
@@ -14,10 +14,10 @@
 # Plugin-specific checks are handled by each plugin's own check-setup.sh:
 #   bmad-workflows  → _bmad/bmm/config.yaml, docs/roadmap/, docs/templates/
 #   test-enforcement → src/fixtures/, src/pages/, src/components/, src/helpers/, src/factories/, src/constants/
-#   qa-context       → docs/roadmap/README.md
 #   observability    → LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY
 #
 # Default required packages (declared trong package.json deps/devDeps):
+#   @playwright/test                                 Playwright test framework
 #   lint-staged                                      Format-on-commit
 #   eslint                                           Linter
 #   prettier                                         Formatter
@@ -25,16 +25,15 @@
 # Detection strategy: check declared trong package.json (deps/devDeps), KHÔNG
 # stat node_modules/<pkg>. Lý do: Yarn PnP không có node_modules, pnpm với
 # `shamefully-hoist=false` đặt package ở `node_modules/.pnpm/...`. Declared
-# check tránh false-negative trên các package manager đó (Devil's Advocate
-# must-fix #2,#3). Trade-off: declared-but-corrupt install không detect được —
-# user phát hiện khi chạy test.
+# check tránh false-negative trên các package manager đó. Trade-off:
+# declared-but-corrupt install không detect được — user phát hiện khi chạy test.
 #
 # Consumer customization:
 #   - Bổ sung paths qua env CONSUMER_REQUIRED_PATHS (newline-separated, support
 #     relative path + alternation via "|" — last 2 fields luôn là label|desc).
 #       Vd: CONSUMER_REQUIRED_PATHS=$'docs/api/\ntsconfig.json'
 #   - Loại bỏ default paths qua CONSUMER_SETUP_SKIP_DEFAULTS=1
-#   - Bypass: SKIP_SETUP_CHECK=1 (per-hook) hoặc SKIP_HOOKS=1 (master)
+#   - Bypass: SKIP_PLAYWRIGHT_SETUP=1 / SKIP_SETUP_CHECK=1 (per-hook) hoặc SKIP_HOOKS=1 (master)
 #
 # Run cadence: hook fire mỗi session startup. Khi cả paths + packages clean,
 # silent exit (no token cost). KHÔNG dùng per-project flag file để tránh các
@@ -44,14 +43,21 @@
 
 set -uo pipefail
 
-SPAN_HOOK_NAME="check-consumer-setup"
+SPAN_HOOK_NAME="check-playwright-setup"
 INPUT=$(cat)
 SPAN_INPUT_JSON="$INPUT"
 source "$(dirname "$0")/_hook-span-emit.sh"
 
-if [[ "${SKIP_HOOKS:-0}" == "1" || "${SKIP_SETUP_CHECK:-0}" == "1" ]]; then
+# SKIP_PLAYWRIGHT_SETUP=1 (new) hoặc SKIP_SETUP_CHECK=1 (legacy alias)
+if [[ "${SKIP_HOOKS:-0}" == "1" || "${SKIP_PLAYWRIGHT_SETUP:-0}" == "1" || "${SKIP_SETUP_CHECK:-0}" == "1" ]]; then
   SPAN_DECISION="bypass"
-  [[ "${SKIP_HOOKS:-0}" == "1" ]] && SPAN_BYPASS="SKIP_HOOKS" || SPAN_BYPASS="SKIP_SETUP_CHECK"
+  if [[ "${SKIP_HOOKS:-0}" == "1" ]]; then
+    SPAN_BYPASS="SKIP_HOOKS"
+  elif [[ "${SKIP_PLAYWRIGHT_SETUP:-0}" == "1" ]]; then
+    SPAN_BYPASS="SKIP_PLAYWRIGHT_SETUP"
+  else
+    SPAN_BYPASS="SKIP_SETUP_CHECK"
+  fi
   exit 0
 fi
 
@@ -130,14 +136,15 @@ process.stdout.write(String(m.length));
 
 # ─── Check required packages (declared in package.json) ─────────────────────
 # Strategy: chỉ check declared trong deps/devDeps. KHÔNG stat node_modules để
-# tránh false-negative trên Yarn PnP / pnpm shamefully-hoist=false (Devil's
-# Advocate must-fix #2,#3). Khi package.json missing → silent return [].
+# tránh false-negative trên Yarn PnP / pnpm shamefully-hoist=false.
+# Khi package.json missing → silent return [].
 MISSING_PACKAGES_JSON=$(node -e '
 const fs = require("fs");
 const required = [
-  { key: "lint-staged", aliases: ["lint-staged"] },
-  { key: "eslint",      aliases: ["eslint"] },
-  { key: "prettier",    aliases: ["prettier"] },
+  { key: "@playwright/test", aliases: ["@playwright/test"] },
+  { key: "lint-staged",      aliases: ["lint-staged"] },
+  { key: "eslint",           aliases: ["eslint"] },
+  { key: "prettier",         aliases: ["prettier"] },
 ];
 let pkg;
 try { pkg = JSON.parse(fs.readFileSync("package.json", "utf-8")); }
@@ -191,35 +198,37 @@ if (missingPkgs.length > 0) {
 }
 
 const lines = [
-  "🛠️  CONSUMER SETUP CHECK — phát hiện " + total + " mục bắt buộc chưa có.",
+  "🎭 PLAYWRIGHT SETUP CHECK — phát hiện " + total + " mục bắt buộc chưa có.",
   "",
-  "Plugin bmad-harness-plugin yêu cầu consumer setup tối thiểu để hooks/skills hoạt động đầy đủ:",
+  "Plugin playwright yêu cầu consumer setup tối thiểu để hooks/skills hoạt động đầy đủ:",
   "",
   sections.join("\n\n"),
   "",
   "═══ Hướng dẫn ═══",
-  "  • Cài thiếu package: npm i -D <pkg>  (hoặc yarn add -D / pnpm add -D / bun add -d)",
-  "  • Tạo folder convention — tham khảo skills/qa-engineer/architecture.md § 10 Directory Structure",
+  "  • Cài @playwright/test: npm i -D @playwright/test && npx playwright install",
+  "  • Cài package khác: npm i -D <pkg>  (hoặc yarn add -D / pnpm add -D / bun add -d)",
+  "  • Tạo playwright.config.ts: npx playwright init (hoặc copy từ docs/PROJECT-STRUCTURE.md)",
+  "  • Tạo tests/ dir với cấu trúc: tests/api/{domain}/ và tests/e2e/{domain}/",
   "  • Sau khi fix xong, restart Claude session để hook re-check",
   "",
   "Capability bị degrade theo từng item missing:",
   "  • package.json                      → không detect được test framework",
   "  • playwright.config.ts              → run-test-mark-fixme.sh không tìm được config",
   "  • tests/                            → không có nơi chứa test specs",
-  "  • lint-staged                        → format-on-commit gate hỏng",
+  "  • @playwright/test                  → Playwright runner không available",
+  "  • lint-staged                       → format-on-commit gate hỏng",
   "  • eslint / prettier                 → code quality enforcement off",
   "",
   "Plugin-specific checks (xem thêm):",
   "  • bmad-workflows   → _bmad/bmm/config.yaml, docs/roadmap/, docs/templates/",
   "  • test-enforcement → src/fixtures/, src/pages/, src/helpers/, src/factories/",
-  "  • qa-context       → docs/roadmap/README.md",
   "  • observability    → LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY",
 ];
 
 
 lines.push(
   "",
-  "Bypass: SKIP_SETUP_CHECK=1 (per-hook) hoặc SKIP_HOOKS=1 (master).",
+  "Bypass: SKIP_PLAYWRIGHT_SETUP=1 (per-hook) hoặc SKIP_HOOKS=1 (master).",
   "Tuỳ biến: CONSUMER_REQUIRED_PATHS (newline) thêm path; CONSUMER_SETUP_SKIP_DEFAULTS=1 bỏ defaults."
 );
 
