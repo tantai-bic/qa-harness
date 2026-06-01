@@ -21,14 +21,9 @@
       "description": "Cost optimization: block duplicate Read calls to avoid wasted cache_read tokens. Compact-aware with auto-allow escape valve."
     },
     {
-      "name": "qa-context",
-      "source": "./plugins/qa-context",
-      "description": "UserPromptSubmit roadmap reading enforcement: injects reminder to read docs/roadmap/ before implementing features or writing tests."
-    },
-    {
-      "name": "playwright",
-      "source": "./plugins/playwright",
-      "description": "Playwright setup check (SessionStart) + test automation orchestration + QA skill doc preloading (UserPromptSubmit). Covers: playwright.config, @playwright/test, tests/ structure, Rule #6 P0/P1/P2 split, service/factory discipline."
+      "name": "playwright-qa-engineer",
+      "source": "./plugins/playwright-qa-engineer",
+      "description": "All-in-one Playwright QA: setup validation (SessionStart) + roadmap enforcement + test orchestration + skill preloading (UserPromptSubmit). Includes 3 skill docs: playwright-setup, playwright-test-organization, playwright-qa-workflow."
     },
     {
       "name": "observability",
