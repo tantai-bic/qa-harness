@@ -91,6 +91,8 @@ DEFAULT_PATHS=(
   "package.json|NPM manifest|Playwright + TS dependencies"
   "playwright.config.ts|playwright.config.js|Playwright config|timeouts, projects, retries"
   "tests|Test dir|tests/api/, tests/e2e/"
+  ".husky|Husky hooks dir|Git hooks managed by husky (chạy lint-staged on commit)"
+  ".husky/pre-commit|Husky pre-commit hook|Required: chạy lint-staged hoặc test trước commit"
 )
 
 MISSING_JSON=$(node -e '
@@ -145,6 +147,7 @@ const required = [
   { key: "lint-staged",      aliases: ["lint-staged"] },
   { key: "eslint",           aliases: ["eslint"] },
   { key: "prettier",         aliases: ["prettier"] },
+  { key: "husky",            aliases: ["husky"] },
 ];
 let pkg;
 try { pkg = JSON.parse(fs.readFileSync("package.json", "utf-8")); }
@@ -206,8 +209,10 @@ const lines = [
   "",
   "═══ Hướng dẫn ═══",
   "  • Cài @playwright/test: npm i -D @playwright/test && npx playwright install",
-  "  • Cài package khác: npm i -D <pkg>  (hoặc yarn add -D / pnpm add -D / bun add -d)",
-  "  • Tạo playwright.config.ts: npx playwright init (hoặc copy từ docs/PROJECT-STRUCTURE.md)",
+  "  • Cài husky + init:    npm i -D husky && npx husky init",
+  "    → tạo .husky/pre-commit (mặc định chạy `npm test`) — edit để chạy `npx lint-staged`",
+  "  • Cài package khác:    npm i -D <pkg>  (hoặc yarn add -D / pnpm add -D / bun add -d)",
+  "  • Tạo playwright.config.ts: npx playwright init",
   "  • Tạo tests/ dir với cấu trúc: tests/api/{domain}/ và tests/e2e/{domain}/",
   "  • Sau khi fix xong, restart Claude session để hook re-check",
   "",
@@ -216,6 +221,8 @@ const lines = [
   "  • playwright.config.ts              → run-test-mark-fixme.sh không tìm được config",
   "  • tests/                            → không có nơi chứa test specs",
   "  • @playwright/test                  → Playwright runner không available",
+  "  • .husky/ + .husky/pre-commit       → Git pre-commit hook KHÔNG fire (lint/test bypass)",
+  "  • husky package                     → `npm install` không tự install Git hooks",
   "  • lint-staged                       → format-on-commit gate hỏng",
   "  • eslint / prettier                 → code quality enforcement off",
   "",
