@@ -1,0 +1,6 @@
+# CODEOWNERS — qa-harness
+# Mọi file trong repo đều require @tantai-bic approve trước khi merge vào main.
+# GitHub enforce khi branch protection có require_code_owner_reviews: true.
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @tantai-bic
