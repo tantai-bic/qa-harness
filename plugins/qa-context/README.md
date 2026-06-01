@@ -1,47 +1,44 @@
-# qa-context
+# qa-context plugin
 
-Injects QA workflow context into every prompt — roadmap reading, skill docs, and test automation orchestration.
+Roadmap reading enforcement for Claude Code QA workflows.
 
-## What it does
+> **Note:** Test automation orchestration and QA skill doc preloading have been moved to the `playwright` plugin.
 
-Three hooks fire on every `UserPromptSubmit`:
+## Hooks
 
-| Hook | Event | Action |
-|------|-------|--------|
-| `enforce-roadmap-reading.sh` | UserPromptSubmit | Injects roadmap doc reminder before implement/test requests if consumer has a roadmap |
-| `orchestrate-test-automation.sh` | UserPromptSubmit | 2-mode orchestration: LOGIC mode (writing tests) → full QA checklist; TEXT-ONLY mode (fixing tags/text) → preserves structure without re-running checklist |
-| `preload-qa-context.sh` | UserPromptSubmit | Loads `qa-engineer` + `qa-test-case` + `test-quality-checklist` skill docs once per session |
+| Event | Script | Action |
+|-------|--------|--------|
+| `UserPromptSubmit` | `enforce-roadmap-reading.sh` | Injects reminder to read roadmap docs before implementing features or writing tests |
 
-## Roadmap enforcement
+## Roadmap enforcement (`enforce-roadmap-reading.sh`)
 
-If the consumer has a roadmap at `docs/roadmap/`, the hook injects a reminder to read the relevant roadmap doc before implementing features or writing tests. Ensures Claude works aligned to current sprint scope.
+Triggers when user asks to implement or test a feature. Detects keywords:
+- **VN:** `tính năng`, `viết test`, `implement`, `thực hiện`, `làm tính năng`
+- **EN:** `implement`, `write test`, `create feature`, `build feature`
 
-## Test orchestration modes
+When triggered:
+1. Discovers `docs/roadmap/` in consumer project
+2. Injects reminder to read the relevant roadmap file(s) recursively (upstream → downstream chain)
+3. Supports custom trigger patterns via `ROADMAP_TRIGGER_REGEX` env var
 
-The `orchestrate-test-automation` hook classifies each prompt:
-
-- **LOGIC mode** — prompt involves writing new test logic → injects full Rule #6 split reminder (P0/P1/P2 files), factory pattern, and skill checklist
-- **TEXT-ONLY mode** — prompt only touches tags, imports, or text → preserves existing structure, skips re-orchestration
-
-## Preload behavior
-
-`preload-qa-context` loads the three core QA skill docs **once per session** (not on every prompt). Subsequent prompts in the same session skip the load — the content is already in context.
+Consumer's roadmap structure: `docs/roadmap/README.md` (index) → story/feature docs.
 
 ## Bypass
 
-| Env | Scope |
+| Var | Scope |
 |-----|-------|
-| `SKIP_TEST_ORCHESTRATION=1` | Skip test automation orchestration |
-| `SKIP_HOOKS=1` | Disable all hooks |
+| `SKIP_ROADMAP_READING=1` | Skip roadmap enforcement |
+| `SKIP_HOOKS=1` | Master bypass (all hooks) |
 
 ## Install
 
 ```json
+// ~/.claude/settings.json
 {
   "enabledPlugins": {
-    "qa-context@qa-harness-dev": true
+    "qa-context@qa-harness": true
   }
 }
 ```
 
-Requires `bmad-workflows` to be enabled — skill docs are sourced from that plugin.
+Recommended: also enable `playwright` plugin for test orchestration + skill doc preloading.

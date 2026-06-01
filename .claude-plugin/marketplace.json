@@ -23,12 +23,12 @@
     {
       "name": "qa-context",
       "source": "./plugins/qa-context",
-      "description": "UserPromptSubmit context injectors: preload skill docs, enforce roadmap reading, orchestrate test automation checklist."
+      "description": "UserPromptSubmit roadmap reading enforcement: injects reminder to read docs/roadmap/ before implementing features or writing tests."
     },
     {
-      "name": "consumer-setup",
-      "source": "./plugins/consumer-setup",
-      "description": "SessionStart startup check nudging consumers to create required files/folders (BMAD config, roadmap, playwright config, src/, tests/)."
+      "name": "playwright",
+      "source": "./plugins/playwright",
+      "description": "Playwright setup check (SessionStart) + test automation orchestration + QA skill doc preloading (UserPromptSubmit). Covers: playwright.config, @playwright/test, tests/ structure, Rule #6 P0/P1/P2 split, service/factory discipline."
     },
     {
       "name": "observability",

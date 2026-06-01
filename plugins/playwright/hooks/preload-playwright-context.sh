@@ -10,20 +10,33 @@
 #        - skills/test-quality-checklist/SKILL.md     (head — 9 rules)
 #   4. Nếu ĐÃ → emit short reminder only (~50 tokens)
 #
+# Skill path resolution (priority order):
+#   1. ${CLAUDE_PLUGIN_ROOT}/../bmad-workflows/skills/  (marketplace install)
+#   2. skills/  (consumer CWD — nếu consumer có local copy)
+#   Graceful fallback: "(missing ...)" nếu cả 2 không tìm thấy.
+#
 # Cost ROI: 1× $0.11 cache_create vs 5-10× Read calls × $0.10-0.20 = positive ROI in test-writing sessions.
 #
-# Bypass: SKIP_QA_PRELOAD=1 (per-hook) hoặc SKIP_HOOKS=1 (master)
+# Bypass: SKIP_PLAYWRIGHT_PRELOAD=1 / SKIP_QA_PRELOAD=1 (legacy alias, per-hook)
+#         SKIP_HOOKS=1 (master)
 
 set -uo pipefail
 
-SPAN_HOOK_NAME="preload-qa-context"
+SPAN_HOOK_NAME="preload-playwright-context"
 INPUT=$(cat)
 SPAN_INPUT_JSON="$INPUT"
 source "$(dirname "$0")/_hook-span-emit.sh"
 
-if [[ "${SKIP_HOOKS:-0}" == "1" || "${SKIP_QA_PRELOAD:-0}" == "1" ]]; then
+# SKIP_PLAYWRIGHT_PRELOAD (new) hoặc SKIP_QA_PRELOAD (legacy alias)
+if [[ "${SKIP_HOOKS:-0}" == "1" || "${SKIP_PLAYWRIGHT_PRELOAD:-0}" == "1" || "${SKIP_QA_PRELOAD:-0}" == "1" ]]; then
   SPAN_DECISION="bypass"
-  [[ "${SKIP_HOOKS:-0}" == "1" ]] && SPAN_BYPASS="SKIP_HOOKS" || SPAN_BYPASS="SKIP_QA_PRELOAD"
+  if [[ "${SKIP_HOOKS:-0}" == "1" ]]; then
+    SPAN_BYPASS="SKIP_HOOKS"
+  elif [[ "${SKIP_PLAYWRIGHT_PRELOAD:-0}" == "1" ]]; then
+    SPAN_BYPASS="SKIP_PLAYWRIGHT_PRELOAD"
+  else
+    SPAN_BYPASS="SKIP_QA_PRELOAD"
+  fi
   exit 0
 fi
 
@@ -81,11 +94,32 @@ process.stdout.write(JSON.stringify({
   exit 0
 fi
 
-# First-time preload — read all 3 files
-ENG_CONTENT=$(cat skills/qa-engineer/SKILL.md 2>/dev/null || echo "(missing skills/qa-engineer/SKILL.md)")
-TC_CONTENT=$(cat skills/qa-test-case/SKILL.md 2>/dev/null || echo "(missing skills/qa-test-case/SKILL.md)")
+# ─── Skill path resolution ──────────────────────────────────────────────────
+# Primary: ${CLAUDE_PLUGIN_ROOT}/../bmad-workflows/skills/ (correct for marketplace)
+# Fallback: skills/ (consumer CWD local copy)
+BMAD_ROOT="${CLAUDE_PLUGIN_ROOT:-}/../bmad-workflows"
+
+_read_skill() {
+  local rel_path="$1"
+  local max_lines="${2:-}"
+  local bmad_path="${BMAD_ROOT}/${rel_path}"
+  local cwd_path="${rel_path}"
+  if [[ -n "$max_lines" ]]; then
+    ( head -"$max_lines" "$bmad_path" 2>/dev/null \
+      || head -"$max_lines" "$cwd_path" 2>/dev/null \
+      || echo "(missing ${rel_path})" )
+  else
+    ( cat "$bmad_path" 2>/dev/null \
+      || cat "$cwd_path" 2>/dev/null \
+      || echo "(missing ${rel_path})" )
+  fi
+}
+
+# First-time preload — read all 3 skill files
+ENG_CONTENT=$(_read_skill "skills/qa-engineer/SKILL.md")
+TC_CONTENT=$(_read_skill "skills/qa-test-case/SKILL.md")
 # Only head ~80 lines of TEST-QUALITY-CHECKLIST (the 9-rule table is in first ~60 lines)
-CKL_CONTENT=$(head -80 skills/test-quality-checklist/SKILL.md 2>/dev/null || echo "(missing skills/test-quality-checklist/SKILL.md)")
+CKL_CONTENT=$(_read_skill "skills/test-quality-checklist/SKILL.md" 80)
 
 # Emit additionalContext with full content
 OUT=$(node -e '
@@ -112,7 +146,7 @@ const msg = [
   "",
   "════════════════════ END PRELOAD ════════════════════",
   "",
-  "Bypass: SKIP_QA_PRELOAD=1 (per-hook) hoặc SKIP_HOOKS=1 (master).",
+  "Bypass: SKIP_PLAYWRIGHT_PRELOAD=1 (per-hook) hoặc SKIP_HOOKS=1 (master).",
 ].join("\n");
 process.stdout.write(JSON.stringify({
   hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: msg }

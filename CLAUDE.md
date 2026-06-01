@@ -19,8 +19,8 @@ qa-harness/                          (= repo này, packaged as marketplace)
 │   ├── bmad-workflows/              BMAD agents + skills + commands + _bmad + runtime guards (3 hooks)
 │   ├── test-enforcement/            Pre-write quality gates (5 hooks)
 │   ├── cost-control/                Read dedup (1 hook)
-│   ├── qa-context/                  UserPromptSubmit context injectors (3 hooks)
-│   ├── consumer-setup/              SessionStart startup check (1 hook)
+│   ├── qa-context/                  UserPromptSubmit roadmap enforcement (1 hook)
+│   ├── playwright/                  Playwright setup check (1 hook) + test orchestration + skill preload (2 hooks)
 │   └── observability/               Session lifecycle (5 hooks) + Langfuse telemetry/scoring (1 hook + 2 utils) — single langfuse-helper.js
 ├── .mcp.json                        MCP servers (rỗng — consumer override)
 └── README.md
@@ -47,7 +47,7 @@ plugins/<name>/
     "test-enforcement@qa-harness": true,
     "qa-context@qa-harness": true,
     "cost-control@qa-harness": true,
-    "consumer-setup@qa-harness": true,
+    "playwright@qa-harness": true,
     "observability@qa-harness": true
   }
 }
@@ -61,8 +61,8 @@ Enable selective: pick chỉ những plugin cần. `bmad-workflows` chứa cả 
 │  Layer 1: RUNTIME GATES (hooks)                                        │
 │    test-enforcement   — PreToolUse Write|Edit + PostToolUse async      │
 │    cost-control       — PreToolUse Read                                │
-│    qa-context         — UserPromptSubmit                               │
-│    consumer-setup     — SessionStart startup                           │
+│    qa-context         — UserPromptSubmit (roadmap only)                │
+│    playwright         — SessionStart startup + UserPromptSubmit(×2)   │
 │    observability      — SessionStart|UserPromptSubmit(×2)              │
 │                         |PostToolUse|Stop|SessionEnd                   │
 │                         (session lifecycle + langfuse score-detector)  │
@@ -83,7 +83,7 @@ Enable selective: pick chỉ những plugin cần. `bmad-workflows` chứa cả 
 
 | Plugin | Hook script | Event | Vai trò |
 |--------|-------------|-------|---------|
-| `consumer-setup` | `check-consumer-setup.sh` | SessionStart (startup) | Nhắc consumer tạo file/folder bắt buộc (BMAD config, roadmap, playwright config, src/, tests/). Tự skip khi chạy trên plugin source. Env: `CONSUMER_REQUIRED_PATHS`, `CONSUMER_SETUP_SKIP_DEFAULTS=1`. Bypass: `SKIP_SETUP_CHECK=1` |
+| `playwright` | `check-playwright-setup.sh` | SessionStart (startup) | Validate Playwright project structure + toolchain (playwright.config, @playwright/test, tests/, lint-staged, eslint, prettier). Tự skip trên plugin source. Env: `CONSUMER_REQUIRED_PATHS`, `CONSUMER_SETUP_SKIP_DEFAULTS=1`. Bypass: `SKIP_PLAYWRIGHT_SETUP=1` |
 | `observability` | `session-start.sh` | SessionStart (startup\|resume\|clear\|compact) | Preload state, init telemetry. Bypass push: `SKIP_LANGFUSE=1` (local archive vẫn chạy) |
 | `observability` | `session-logger-init.sh` | UserPromptSubmit | Bắt đầu log session |
 | `observability` | `session-logger-tool.sh` | PostToolUse | Log tool execution |
@@ -96,8 +96,8 @@ Enable selective: pick chỉ những plugin cần. `bmad-workflows` chứa cả 
 | `bmad-workflows` | `enforce-bmad-output-consistency.sh` | UserPromptSubmit | Gate BMAD agent activation ≤ 250 tokens |
 | `bmad-workflows` | `enforce-bmad-agent-scope.sh` | PreToolUse Write\|Edit | Block khi BMAD agent active làm SAI ROLE (pm/sm/architect/ux-designer/tech-writer không edit code; dev không edit PRD/architecture; tea chỉ test code + test-design). Bypass: `SKIP_BMAD_SCOPE=1` |
 | `qa-context` | `enforce-roadmap-reading.sh` | UserPromptSubmit | Ép đọc roadmap doc (nếu consumer có) trước khi code |
-| `qa-context` | `orchestrate-test-automation.sh` | UserPromptSubmit | 2-mode: LOGIC (viết test) → full QA checklist; TEXT-ONLY → giữ tags + import structure. Bypass: `SKIP_TEST_ORCHESTRATION=1` |
-| `qa-context` | `preload-qa-context.sh` | UserPromptSubmit | Load QA context relevant |
+| `playwright` | `orchestrate-test-automation.sh` | UserPromptSubmit | 2-mode: LOGIC (viết test) → full QA checklist; TEXT-ONLY → giữ tags + import structure. Bypass: `SKIP_TEST_ORCHESTRATION=1` |
+| `playwright` | `preload-playwright-context.sh` | UserPromptSubmit | Preload QA skill docs từ bmad-workflows (1×/session, ~6K tokens cache). Bypass: `SKIP_PLAYWRIGHT_PRELOAD=1` |
 | `test-enforcement` | `enforce-fixture-helper-prerequisite.sh` | PreToolUse Write\|Edit | Block viết spec nếu import service/factory/fixture/helper CHƯA tồn tại. Bypass: `SKIP_FIXTURE_PREREQ=1` |
 | `test-enforcement` | `enforce-spec-tags.sh` | PreToolUse Write\|Edit | Block spec thiếu/sai tag CICD (PRIORITY @P0-P3, LAYER @BE/@FE, TYPE ≥1 @Smoke/@Sanity/...). Bypass: `SKIP_SPEC_TAGS=1` |
 | `test-enforcement` | `enforce-security-test-presence.sh` | PreToolUse Write\|Edit | Warn (không block) khi spec test user-input thiếu security coverage. Bypass: `SKIP_SECURITY_REMINDER=1` |
@@ -185,7 +185,7 @@ Test fail ≠ test sai. KHÔNG sửa test để pass khi BE sai → log bug theo
        "bmad-workflows@qa-harness": true,
        "test-enforcement@qa-harness": true,
        "qa-context@qa-harness": true,
-       "consumer-setup@qa-harness": true,
+       "playwright@qa-harness": true,
        "observability@qa-harness": true
      }
    }

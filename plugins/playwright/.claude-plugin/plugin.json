@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "playwright",
+  "displayName": "Playwright Plugin",
+  "description": "Playwright setup check (SessionStart startup) + test automation orchestration + skill doc preloading (UserPromptSubmit). Covers: playwright.config validation, @playwright/test declared in package.json, tests/ structure, lint toolchain (lint-staged/eslint/prettier), Rule #6 P0/P1/P2 file split, service/factory discipline, hierarchy of truth, QA context preload from bmad-workflows skills.",
+  "version": "1.0.0",
+  "author": {
+    "name": "TanTai-BIC"
+  },
+  "keywords": [
+    "playwright",
+    "setup-check",
+    "test-orchestration",
+    "context-preload",
+    "hooks"
+  ],
+  "components": {
+    "hooks": "./hooks"
+  }
+}
