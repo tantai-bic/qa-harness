@@ -1,36 +1,24 @@
-# Playwright Setup — Project Structure & Toolchain
+# Playwright Setup — Core Project Structure & Toolchain
 
-> Reference doc cho consumer setup Playwright project đúng convention.
+> Reference doc cho consumer setup Playwright project từ zero — chỉ scope **core setup**.
 > Hook `check-playwright-setup.sh` tự động validate các mục này khi session startup.
+>
+> ❌ Skill này KHÔNG cover cách viết test (naming convention, P0/P1/P2 split, …) —
+> xem `skills/playwright-test-organization/SKILL.md` cho test writing.
 
-## 1. Required Project Structure
+## 1. Minimum Required Files
+
+Đây là điều kiện CẦN để Playwright runner hoạt động:
 
 ```
 consumer-project/
-├── package.json                   NPM manifest (Playwright + TS + linting deps)
-├── playwright.config.ts           Playwright config (timeouts, projects, retries)
-│   (hoặc playwright.config.js)
-├── tests/
-│   ├── api/                       API/backend test specs
-│   │   └── {domain}/
-│   │       └── {story-folder}/
-│   │           ├── P0-{feature}.spec.ts
-│   │           ├── P1-{feature}.spec.ts
-│   │           └── P2-{feature}.spec.ts
-│   └── e2e/                       End-to-end test specs
-│       └── {domain}/
-│           └── {story-folder}/
-│               └── P{n}-{feature}.spec.ts
-├── src/
-│   ├── constants/                 API_ENDPOINTS, shared constants
-│   ├── fixtures/                  Playwright fixture extensions
-│   ├── pages/                     Page Object Models (E2E)
-│   ├── components/                Reusable page components
-│   ├── helpers/                   Shared test helpers / utils
-│   └── factories/                 Payload factories (per-module)
-└── docs/
-    └── roadmap/                   Feature state machine docs (consumer-defined)
+├── package.json                   NPM manifest
+├── playwright.config.ts           Playwright config (hoặc .js)
+└── tests/                         Test root directory
 ```
+
+Setup check pass khi 3 mục trên tồn tại. Cấu trúc bên trong `tests/` (api / e2e, naming
+convention, priority split) là phạm vi của test-organization, KHÔNG enforce ở đây.
 
 ## 2. Required Packages
 
@@ -46,10 +34,10 @@ Declared trong `package.json` (`dependencies` hoặc `devDependencies`):
 > Detection strategy: check **declared** (deps/devDeps), KHÔNG stat `node_modules`.
 > Safe cho Yarn PnP và pnpm `shamefully-hoist=false`.
 
-## 3. playwright.config.ts Conventions
+## 3. playwright.config.ts — Minimal Working Config
 
 ```ts
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
@@ -58,32 +46,44 @@ export default defineConfig({
   workers: process.env.CI ? 4 : undefined,
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:3000',
-    extraHTTPHeaders: {
-      'Accept': 'application/json',
-    },
   },
-  projects: [
-    { name: 'api',  testMatch: /tests\/api\/.+\.spec\.ts/ },
-    { name: 'e2e',  testMatch: /tests\/e2e\/.+\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
-  ],
 });
 ```
 
-## 4. Capability Degradation
+Config này đủ chạy. Mở rộng projects/devices/reporters tuỳ nhu cầu — không phải core setup.
 
-| Missing | Consequence |
-|---------|-------------|
-| `package.json` | Cannot detect test framework |
-| `playwright.config.ts` | `run-test-mark-fixme.sh` cannot find config |
-| `tests/` | No location for test specs |
-| `@playwright/test` | Playwright runner unavailable |
-| `lint-staged` | Format-on-commit gate broken |
-| `eslint` / `prettier` | Code quality enforcement off |
-
-## 5. Bypass & Customization
+## 4. Bootstrap Commands (từ zero)
 
 ```bash
-# Bypass setup check for this session
+# Khởi tạo Playwright (tạo playwright.config.ts + tests/ + cài deps)
+npm init -y
+npm i -D @playwright/test
+npx playwright install
+
+# Linting toolchain
+npm i -D eslint prettier lint-staged
+
+# Xác nhận structure
+ls package.json playwright.config.ts tests/
+```
+
+Sau bước này, restart Claude session → `check-playwright-setup.sh` silent (pass).
+
+## 5. Capability Degradation
+
+| Missing | Hậu quả |
+|---------|---------|
+| `package.json` | Không detect được test framework |
+| `playwright.config.ts` | `run-test-mark-fixme.sh` không tìm được config |
+| `tests/` | Không có nơi chứa test specs |
+| `@playwright/test` | Playwright runner unavailable |
+| `lint-staged` | Format-on-commit gate hỏng |
+| `eslint` / `prettier` | Code quality enforcement off |
+
+## 6. Bypass & Customization
+
+```bash
+# Bypass setup check (per-session)
 SKIP_PLAYWRIGHT_SETUP=1 claude
 
 # Add extra required paths (newline-separated)
@@ -96,10 +96,22 @@ CONSUMER_SETUP_SKIP_DEFAULTS=1 claude
 SKIP_HOOKS=1 claude
 ```
 
-## 6. Plugin-specific Setup (Other Plugins)
+## 7. Plugin-specific Setup (Other Plugins)
+
+Mỗi plugin trong marketplace có setup check riêng. Liệt kê ở đây để consumer biết
+tổng thể, KHÔNG enforce ở skill này:
 
 | Plugin | Additional requirements |
 |--------|------------------------|
 | `bmad-workflows` | `_bmad/bmm/config.yaml`, `docs/roadmap/`, `docs/templates/` |
 | `test-enforcement` | `src/fixtures/`, `src/pages/`, `src/helpers/`, `src/factories/`, `src/constants/` |
 | `observability` | `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY` in env |
+
+## 8. Next Steps Sau Khi Setup
+
+Sau khi 3 core files + 4 packages đã có → setup CORE đã xong.
+
+Để bắt đầu viết test:
+- Đọc `skills/playwright-test-organization/SKILL.md` (Rule #6, service/factory, hierarchy)
+- Đọc `skills/playwright-qa-workflow/SKILL.md` (roadmap workflow, scope discipline)
+- Setup `src/` structure đúng convention (xem `test-enforcement` plugin requirements)
