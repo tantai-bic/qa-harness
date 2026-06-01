@@ -1,6 +1,6 @@
 {
   "name": "qa-harness",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Reusable Claude Code plugin for Playwright + TypeScript QA",
   "private": true,
   "scripts": {
