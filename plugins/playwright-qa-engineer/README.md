@@ -10,6 +10,7 @@ All-in-one Playwright QA plugin: setup validation, roadmap enforcement, test orc
 | `UserPromptSubmit` | `enforce-roadmap-reading.sh` | Injects reminder to read roadmap docs before implementing |
 | `UserPromptSubmit` | `orchestrate-test-automation.sh` | Injects test-writing checklist (Rule #6, service/factory, hierarchy) |
 | `UserPromptSubmit` | `preload-playwright-context.sh` | Preloads 3 local skill docs (1× per session cache) |
+| `UserPromptSubmit` | `inject-dev-playwright-menu.sh` | Injects `[PS] Setup Playwright` menu item khi user activate BMAD dev agent |
 
 ## Skills
 
@@ -62,6 +63,7 @@ On first test-writing trigger per session: loads 3 local skills + `test-quality-
 | `SKIP_ROADMAP_READING=1` | Skip roadmap enforcement |
 | `SKIP_TEST_ORCHESTRATION=1` | Skip orchestration |
 | `SKIP_PLAYWRIGHT_PRELOAD=1` | Skip preload |
+| `SKIP_DEV_PLAYWRIGHT_MENU=1` | Skip BMAD dev menu extension |
 | `SKIP_HOOKS=1` | Master bypass |
 | `ROADMAP_TRIGGER_REGEX=<pattern>` | Custom roadmap trigger |
 | `MODULE_KEYWORDS=<space-sep>` | Custom module keywords |

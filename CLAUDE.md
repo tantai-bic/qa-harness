@@ -96,6 +96,7 @@ Enable selective: pick chỉ những plugin cần. `bmad-workflows` chứa cả 
 | `playwright-qa-engineer` | `enforce-roadmap-reading.sh` | UserPromptSubmit | Ép đọc roadmap doc (nếu consumer có) trước khi code. Bypass: `SKIP_ROADMAP_READING=1` |
 | `playwright-qa-engineer` | `orchestrate-test-automation.sh` | UserPromptSubmit | 2-mode: LOGIC (viết test) → full QA checklist; TEXT-ONLY → giữ tags + import structure. Bypass: `SKIP_TEST_ORCHESTRATION=1` |
 | `playwright-qa-engineer` | `preload-playwright-context.sh` | UserPromptSubmit | Preload 3 local skill docs (playwright-setup/test-organization/qa-workflow) 1×/session. Bypass: `SKIP_PLAYWRIGHT_PRELOAD=1` |
+| `playwright-qa-engineer` | `inject-dev-playwright-menu.sh` | UserPromptSubmit | Khi user activate BMAD dev agent (`bmm:agents:dev`) → inject menu item `[PS] Setup Playwright` + skill path. 1×/session. Bypass: `SKIP_DEV_PLAYWRIGHT_MENU=1` |
 | `test-enforcement` | `enforce-fixture-helper-prerequisite.sh` | PreToolUse Write\|Edit | Block viết spec nếu import service/factory/fixture/helper CHƯA tồn tại. Bypass: `SKIP_FIXTURE_PREREQ=1` |
 | `test-enforcement` | `enforce-spec-tags.sh` | PreToolUse Write\|Edit | Block spec thiếu/sai tag CICD (PRIORITY @P0-P3, LAYER @BE/@FE, TYPE ≥1 @Smoke/@Sanity/...). Bypass: `SKIP_SPEC_TAGS=1` |
 | `test-enforcement` | `enforce-security-test-presence.sh` | PreToolUse Write\|Edit | Warn (không block) khi spec test user-input thiếu security coverage. Bypass: `SKIP_SECURITY_REMINDER=1` |
