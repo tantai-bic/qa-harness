@@ -67,4 +67,5 @@ hooks/.hook-spans-pending/
 
 # Plugin distribution bundles
 dist/
+.release/
 *.tgz
