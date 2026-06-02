@@ -90,7 +90,10 @@ fi
 DEFAULT_PATHS=(
   "package.json|NPM manifest|Playwright + TS dependencies"
   "playwright.config.ts|playwright.config.js|Playwright config|timeouts, projects, retries"
+  "tsconfig.json|TypeScript config|narrow scope: src/ + tests/ + playwright.config.ts"
   "tests|Test dir|tests/api/, tests/e2e/"
+  ".husky|Husky hooks dir|Git hooks managed by husky (chạy lint-staged on commit)"
+  ".husky/pre-commit|Husky pre-commit hook|Required: chạy lint-staged hoặc test trước commit"
 )
 
 MISSING_JSON=$(node -e '
@@ -142,9 +145,11 @@ MISSING_PACKAGES_JSON=$(node -e '
 const fs = require("fs");
 const required = [
   { key: "@playwright/test", aliases: ["@playwright/test"] },
+  { key: "typescript",       aliases: ["typescript"] },
   { key: "lint-staged",      aliases: ["lint-staged"] },
   { key: "eslint",           aliases: ["eslint"] },
   { key: "prettier",         aliases: ["prettier"] },
+  { key: "husky",            aliases: ["husky"] },
 ];
 let pkg;
 try { pkg = JSON.parse(fs.readFileSync("package.json", "utf-8")); }
@@ -206,16 +211,26 @@ const lines = [
   "",
   "═══ Hướng dẫn ═══",
   "  • Cài @playwright/test: npm i -D @playwright/test && npx playwright install",
-  "  • Cài package khác: npm i -D <pkg>  (hoặc yarn add -D / pnpm add -D / bun add -d)",
-  "  • Tạo playwright.config.ts: npx playwright init (hoặc copy từ docs/PROJECT-STRUCTURE.md)",
+  "  • Cài typescript:       npm i -D typescript",
+  "  • Tạo tsconfig.json (narrow scope) — xem skill playwright-setup § 4:",
+  "      include: [\"src/**/*.ts\", \"tests/**/*.ts\", \"playwright.config.ts\"]",
+  "      paths:   { \"@src/*\": [\"src/*\"] }",
+  "  • Cài husky + init:    npm i -D husky && npx husky init",
+  "    → tạo .husky/pre-commit (mặc định chạy `npm test`) — edit để chạy `npx lint-staged`",
+  "  • Cài package khác:    npm i -D <pkg>  (hoặc yarn add -D / pnpm add -D / bun add -d)",
+  "  • Tạo playwright.config.ts: npx playwright init",
   "  • Tạo tests/ dir với cấu trúc: tests/api/{domain}/ và tests/e2e/{domain}/",
   "  • Sau khi fix xong, restart Claude session để hook re-check",
   "",
   "Capability bị degrade theo từng item missing:",
   "  • package.json                      → không detect được test framework",
   "  • playwright.config.ts              → run-test-mark-fixme.sh không tìm được config",
+  "  • tsconfig.json                     → tsc default scope = scan toàn project (sai/chậm)",
   "  • tests/                            → không có nơi chứa test specs",
   "  • @playwright/test                  → Playwright runner không available",
+  "  • typescript                        → tsc không chạy được, type-check off",
+  "  • .husky/ + .husky/pre-commit       → Git pre-commit hook KHÔNG fire (lint/test bypass)",
+  "  • husky package                     → `npm install` không tự install Git hooks",
   "  • lint-staged                       → format-on-commit gate hỏng",
   "  • eslint / prettier                 → code quality enforcement off",
   "",

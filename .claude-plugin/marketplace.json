@@ -29,6 +29,11 @@
       "name": "observability",
       "source": "./plugins/observability",
       "description": "Session lifecycle (start/stop/cleanup/logger-init/logger-tool) + Langfuse telemetry & scoring (score-detector + push-score + accuracy-efficiency). Single langfuse-helper.js (no duplication). Granular SKIP_LANGFUSE=1 disables Langfuse push only — session logs vẫn chạy."
+    },
+    {
+      "name": "github",
+      "source": "./plugins/github",
+      "description": "Pre-tool gate: block GitHub reads (WebFetch/WebSearch/mcp__github__*) khi user CHƯA yêu cầu github trong prompt session. Tránh agent tự fetch repo/PR/issue ngoài scope. Allow khi user mention github/PR/repo/issue/gh CLI/gist."
     }
   ]
 }

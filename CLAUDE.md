@@ -7,6 +7,8 @@
 - **Tên:** `qa-harness` — **Claude Code plugin marketplace** chứa 6 plugin độc lập, mỗi plugin shape 1 mảng behavior của Claude cho project Playwright + TypeScript.
 - **Mục đích:** đóng khung Claude vào quy trình QA-driven chuẩn hoá → consumer chọn enable từng plugin tuỳ nhu cầu (toàn bộ harness, hoặc chỉ subset).
 - **Cơ chế:** hooks (runtime gates) + BMAD agents/skills (workflow + standards) — tất cả **project-agnostic**, phân thành 6 plugin để compose linh hoạt.
+
+> Plugin list: `bmad-workflows`, `test-enforcement`, `cost-control`, `playwright-qa-engineer`, `observability`, `github`.
 - **Consumer là project Playwright bất kỳ** — không tied to project nào. Ví dụ minh hoạ trong `plugins/bmad-workflows/docs/` (roadmap/PROJECT-STRUCTURE) chỉ là tham khảo.
 
 ## 2. Marketplace structure (Claude Code Plugin spec)
@@ -20,7 +22,8 @@ qa-harness/                          (= repo này, packaged as marketplace)
 │   ├── test-enforcement/            Pre-write quality gates (5 hooks)
 │   ├── cost-control/                Read dedup (1 hook)
 │   ├── playwright-qa-engineer/      All-in-one Playwright QA: setup (1 hook) + roadmap/orchestrate/preload (3 hooks) + 3 skill docs
-│   └── observability/               Session lifecycle (5 hooks) + Langfuse telemetry/scoring (1 hook + 2 utils) — single langfuse-helper.js
+│   ├── observability/               Session lifecycle (5 hooks) + Langfuse telemetry/scoring (1 hook + 2 utils) — single langfuse-helper.js
+│   └── github/                      Block GitHub reads (WebFetch/WebSearch/mcp__github__*) khi user chưa yêu cầu (1 hook)
 ├── .mcp.json                        MCP servers (rỗng — consumer override)
 └── README.md
 ```
@@ -46,11 +49,12 @@ plugins/<name>/
     "test-enforcement@qa-harness": true,
     "playwright-qa-engineer@qa-harness": true,
     "cost-control@qa-harness": true,
-    "observability@qa-harness": true
+    "observability@qa-harness": true,
+    "github@qa-harness": true
   }
 }
 ```
-Enable selective: pick chỉ những plugin cần. `bmad-workflows` chứa cả BMAD knowledge + runtime guards — nên enable đầu tiên. Hook plugins khác (playwright-qa-engineer, test-enforcement, ...) opt-in tuỳ workflow. Granular telemetry: bật `observability` để có session log nhưng set `SKIP_LANGFUSE=1` nếu muốn tắt Langfuse push (vẫn giữ local `.claude/session-logs/`).
+Enable selective: pick chỉ những plugin cần. `bmad-workflows` chứa cả BMAD knowledge + runtime guards — nên enable đầu tiên. Hook plugins khác (playwright-qa-engineer, test-enforcement, github, ...) opt-in tuỳ workflow. Granular telemetry: bật `observability` để có session log nhưng set `SKIP_LANGFUSE=1` nếu muốn tắt Langfuse push (vẫn giữ local `.claude/session-logs/`).
 
 ## 3. Plugin map (Layer × Plugin)
 
@@ -66,6 +70,10 @@ Enable selective: pick chỉ những plugin cần. `bmad-workflows` chứa cả 
 │                         (session lifecycle + langfuse score-detector)  │
 │    bmad-workflows     — UserPromptSubmit + PreToolUse Write|Edit       │
 │                         (BMAD guards bundled with workflows)           │
+│    github             — PreToolUse WebFetch|WebSearch|mcp__github__*   │
+│                         |Bash (gh CLI, curl/wget github, git           │
+│                         fetch/clone github URL, git log origin/...)    │
+│                         (block github reads without user intent)       │
 ├────────────────────────────────────────────────────────────────────────┤
 │  Layer 2: WORKFLOW (BMAD agents)                                       │
 │    bmad-workflows     — dev, sm, architect, pm, tea, ux-designer, ... │
@@ -96,12 +104,14 @@ Enable selective: pick chỉ những plugin cần. `bmad-workflows` chứa cả 
 | `playwright-qa-engineer` | `enforce-roadmap-reading.sh` | UserPromptSubmit | Ép đọc roadmap doc (nếu consumer có) trước khi code. Bypass: `SKIP_ROADMAP_READING=1` |
 | `playwright-qa-engineer` | `orchestrate-test-automation.sh` | UserPromptSubmit | 2-mode: LOGIC (viết test) → full QA checklist; TEXT-ONLY → giữ tags + import structure. Bypass: `SKIP_TEST_ORCHESTRATION=1` |
 | `playwright-qa-engineer` | `preload-playwright-context.sh` | UserPromptSubmit | Preload 3 local skill docs (playwright-setup/test-organization/qa-workflow) 1×/session. Bypass: `SKIP_PLAYWRIGHT_PRELOAD=1` |
+| `playwright-qa-engineer` | `inject-dev-playwright-menu.sh` | UserPromptSubmit | Khi user activate BMAD dev agent (`bmm:agents:dev`) → inject menu item `[PS] Setup Playwright` + skill path. 1×/session. Bypass: `SKIP_DEV_PLAYWRIGHT_MENU=1` |
 | `test-enforcement` | `enforce-fixture-helper-prerequisite.sh` | PreToolUse Write\|Edit | Block viết spec nếu import service/factory/fixture/helper CHƯA tồn tại. Bypass: `SKIP_FIXTURE_PREREQ=1` |
 | `test-enforcement` | `enforce-spec-tags.sh` | PreToolUse Write\|Edit | Block spec thiếu/sai tag CICD (PRIORITY @P0-P3, LAYER @BE/@FE, TYPE ≥1 @Smoke/@Sanity/...). Bypass: `SKIP_SPEC_TAGS=1` |
 | `test-enforcement` | `enforce-security-test-presence.sh` | PreToolUse Write\|Edit | Warn (không block) khi spec test user-input thiếu security coverage. Bypass: `SKIP_SECURITY_REMINDER=1` |
 | `test-enforcement` | `enforce-test-quality-checklist.sh` | PreToolUse Write\|Edit | Block test code vi phạm 9 rules |
 | `test-enforcement` | `run-test-mark-fixme.sh` | PostToolUse Write\|Edit (async) | Sau Write/Edit `tests/**/*.spec.ts` → chạy `npx playwright test <file>` → mark fail tests `test.fixme()`. Timeout 120s. Bypass: `SKIP_RUN_TEST=1` |
 | `cost-control` | `enforce-read-dedup.sh` | PreToolUse Read | Block đọc trùng file. v2 compact-aware. Escape valve: nếu Edit/Write báo "File has not been read" → auto-allow. Bypass: `SKIP_READ_DEDUP=1` |
+| `github` | `block-github-read.sh` | PreToolUse WebFetch\|WebSearch\|mcp__github__*\|Bash | Block agent đọc GitHub / commit history khi user CHƯA mention intent. **Intent keywords:** `github`, `gh `, `PR`, `pull request`, `issue #N`, `repo`, `fork`, `clone https`, `gist`, `history`, `changelog`, `blame`, `reflog`, `git show/log/blame/rev-list/cherry/shortlog/reflog/diff`, `<show\|view\|check\|see\|list\|look\|read\|recent\|latest\|which\|what> ... commits` (plural), `commit history/hash/sha/id/log`, VN: `xem/đọc/kiểm tra/liệt kê ... commit(s)`. **Filters:** post-compact reset; ignore "pre-commit hook", "commit message" noise; `\S` for Vietnamese diacritics. **Cover:** WebFetch url chứa `github.com/githubusercontent.com/gist.github.com`, WebSearch query chứa `github`, mọi `mcp__github__*` tool, Bash với `gh <subcmd>`, `curl/wget/http/xh ...github.com...`, `git (fetch\|pull\|ls-remote\|clone) ...github URL...`, `git (show\|log\|blame\|rev-list\|cherry\|shortlog\|reflog)` (unconditional), `git diff <commit-ref>` (working-tree diff ALLOWED: `git diff`, `--cached`, `--staged`). **Pass:** `git status`, `git branch`, `git rev-parse`, `git fetch` no-URL, local `git diff` working-tree. Bypass: `SKIP_GITHUB_READ_GATE=1` |
 
 **Bypass cấp:**
 - **Plugin level:** disable cả plugin qua `enabledPlugins`
@@ -183,11 +193,12 @@ Test fail ≠ test sai. KHÔNG sửa test để pass khi BE sai → log bug theo
        "bmad-workflows@qa-harness": true,
        "test-enforcement@qa-harness": true,
        "playwright-qa-engineer@qa-harness": true,
-       "observability@qa-harness": true
+       "observability@qa-harness": true,
+       "github@qa-harness": true
      }
    }
    ```
-   (Thêm `cost-control` tuỳ nhu cầu. Trong `observability`, có thể disable chỉ phần Langfuse push bằng env `SKIP_LANGFUSE=1` — session log local vẫn chạy.)
+   (Thêm `cost-control` tuỳ nhu cầu. Trong `observability`, có thể disable chỉ phần Langfuse push bằng env `SKIP_LANGFUSE=1` — session log local vẫn chạy. Plugin `github` gate WebFetch/WebSearch/mcp__github__* khi prompt chưa mention github — bypass per-call: `SKIP_GITHUB_READ_GATE=1`.)
 2. Tạo `_bmad/bmm/config.yaml` ở consumer repo: `project_name`, `user_name`, `communication_language`, `output_folder`
 3. Tạo docs riêng cho consumer (`docs/PROJECT-STRUCTURE.md`, `docs/roadmap/`). Kiến trúc generic đã có sẵn trong `bmad-workflows/skills/qa-engineer/architecture.md`.
 4. (Optional) Tạo `.mcp.json` ở consumer root nếu cần MCP — auto-approve qua `enableAllProjectMcpServers: true`
