@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "github",
+  "displayName": "GitHub Read Gate",
+  "description": "Pre-tool gate: block GitHub reads (WebFetch/WebSearch/mcp__github__*) khi user KHÔNG yêu cầu trong prompt session. Tránh agent tự ý fetch repo/PR/issue ngoài scope. Allow ngay khi user mention github/PR/repo/issue/gh CLI.",
+  "version": "1.0.0",
+  "author": {
+    "name": "TanTai-BIC"
+  },
+  "keywords": [
+    "github",
+    "gate",
+    "scope-control",
+    "hooks"
+  ],
+  "components": {
+    "hooks": "./hooks"
+  }
+}
