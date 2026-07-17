@@ -24,11 +24,6 @@
       "name": "playwright-qa-engineer",
       "source": "./plugins/playwright-qa-engineer",
       "description": "All-in-one Playwright QA: setup validation (SessionStart) + roadmap enforcement + test orchestration + skill preloading (UserPromptSubmit). Includes 3 skill docs: playwright-setup, playwright-test-organization, playwright-qa-workflow."
-    },
-    {
-      "name": "observability",
-      "source": "./plugins/observability",
-      "description": "Session lifecycle (start/stop/cleanup/logger-init/logger-tool) + Langfuse telemetry & scoring (score-detector + push-score + accuracy-efficiency). Single langfuse-helper.js (no duplication). Granular SKIP_LANGFUSE=1 disables Langfuse push only — session logs vẫn chạy."
     }
   ]
 }

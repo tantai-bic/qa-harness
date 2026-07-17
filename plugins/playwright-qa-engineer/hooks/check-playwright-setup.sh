@@ -14,7 +14,6 @@
 # Plugin-specific checks are handled by each plugin's own check-setup.sh:
 #   bmad-workflows  → _bmad/bmm/config.yaml, docs/roadmap/, docs/templates/
 #   test-enforcement → src/fixtures/, src/pages/, src/components/, src/helpers/, src/factories/, src/constants/
-#   observability    → LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY
 #
 # Default required packages (declared trong package.json deps/devDeps):
 #   @playwright/test                                 Playwright test framework
@@ -222,7 +221,6 @@ const lines = [
   "Plugin-specific checks (xem thêm):",
   "  • bmad-workflows   → _bmad/bmm/config.yaml, docs/roadmap/, docs/templates/",
   "  • test-enforcement → src/fixtures/, src/pages/, src/helpers/, src/factories/",
-  "  • observability    → LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY",
 ];
 
 

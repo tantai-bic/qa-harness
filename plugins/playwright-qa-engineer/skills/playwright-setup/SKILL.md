@@ -102,4 +102,3 @@ SKIP_HOOKS=1 claude
 |--------|------------------------|
 | `bmad-workflows` | `_bmad/bmm/config.yaml`, `docs/roadmap/`, `docs/templates/` |
 | `test-enforcement` | `src/fixtures/`, `src/pages/`, `src/helpers/`, `src/factories/`, `src/constants/` |
-| `observability` | `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY` in env |

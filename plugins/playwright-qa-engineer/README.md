@@ -77,4 +77,4 @@ On first test-writing trigger per session: loads 3 local skills + `test-quality-
 }
 ```
 
-Recommended: also enable `bmad-workflows` (for full BMAD agents + skills), `test-enforcement` (pre-write quality gates), and `observability` (session logging).
+Recommended: also enable `bmad-workflows` (for full BMAD agents + skills) and `test-enforcement` (pre-write quality gates).

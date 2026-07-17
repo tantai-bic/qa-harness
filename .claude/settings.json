@@ -7,8 +7,7 @@
     "test-enforcement@qa-harness": true,
     "cost-control@qa-harness": true,
     "qa-context@qa-harness": true,
-    "consumer-setup@qa-harness": true,
-    "observability@qa-harness": true
+    "consumer-setup@qa-harness": true
   },
   "extraKnownMarketplaces": {
     "qa-harness": {

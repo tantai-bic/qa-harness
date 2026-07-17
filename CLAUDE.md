@@ -19,8 +19,7 @@ qa-harness/                          (= repo này, packaged as marketplace)
 │   ├── bmad-workflows/              BMAD agents + skills + commands + _bmad + runtime guards (3 hooks)
 │   ├── test-enforcement/            Pre-write quality gates (5 hooks)
 │   ├── cost-control/                Read dedup (1 hook)
-│   ├── playwright-qa-engineer/      All-in-one Playwright QA: setup (1 hook) + roadmap/orchestrate/preload (3 hooks) + 3 skill docs
-│   └── observability/               Session lifecycle (5 hooks) + Langfuse telemetry/scoring (1 hook + 2 utils) — single langfuse-helper.js
+│   └── playwright-qa-engineer/      All-in-one Playwright QA: setup (1 hook) + roadmap/orchestrate/preload (3 hooks) + 3 skill docs
 ├── .mcp.json                        MCP servers (rỗng — consumer override)
 └── README.md
 ```
@@ -45,12 +44,11 @@ plugins/<name>/
     "bmad-workflows@qa-harness": true,
     "test-enforcement@qa-harness": true,
     "playwright-qa-engineer@qa-harness": true,
-    "cost-control@qa-harness": true,
-    "observability@qa-harness": true
+    "cost-control@qa-harness": true
   }
 }
 ```
-Enable selective: pick chỉ những plugin cần. `bmad-workflows` chứa cả BMAD knowledge + runtime guards — nên enable đầu tiên. Hook plugins khác (playwright-qa-engineer, test-enforcement, ...) opt-in tuỳ workflow. Granular telemetry: bật `observability` để có session log nhưng set `SKIP_LANGFUSE=1` nếu muốn tắt Langfuse push (vẫn giữ local `.claude/session-logs/`).
+Enable selective: pick chỉ những plugin cần. `bmad-workflows` chứa cả BMAD knowledge + runtime guards — nên enable đầu tiên. Hook plugins khác (playwright-qa-engineer, test-enforcement, ...) opt-in tuỳ workflow.
 
 ## 3. Plugin map (Layer × Plugin)
 
@@ -61,9 +59,6 @@ Enable selective: pick chỉ những plugin cần. `bmad-workflows` chứa cả 
 │    cost-control       — PreToolUse Read                                │
 │    playwright-qa-engineer — SessionStart startup                       │
 │                           + UserPromptSubmit(×3: roadmap/orchestrate/preload) │
-│    observability      — SessionStart|UserPromptSubmit(×2)              │
-│                         |PostToolUse|Stop|SessionEnd                   │
-│                         (session lifecycle + langfuse score-detector)  │
 │    bmad-workflows     — UserPromptSubmit + PreToolUse Write|Edit       │
 │                         (BMAD guards bundled with workflows)           │
 ├────────────────────────────────────────────────────────────────────────┤
@@ -82,14 +77,6 @@ Enable selective: pick chỉ những plugin cần. `bmad-workflows` chứa cả 
 | Plugin | Hook script | Event | Vai trò |
 |--------|-------------|-------|---------|
 | `playwright-qa-engineer` | `check-playwright-setup.sh` | SessionStart (startup) | Validate Playwright project structure + toolchain (playwright.config, @playwright/test, tests/, lint-staged, eslint, prettier). Tự skip trên plugin source. Bypass: `SKIP_PLAYWRIGHT_SETUP=1` |
-| `observability` | `session-start.sh` | SessionStart (startup\|resume\|clear\|compact) | Preload state, init telemetry. Bypass push: `SKIP_LANGFUSE=1` (local archive vẫn chạy) |
-| `observability` | `session-logger-init.sh` | UserPromptSubmit | Bắt đầu log session |
-| `observability` | `session-logger-tool.sh` | PostToolUse | Log tool execution |
-| `observability` | `session-stop.sh` | Stop | Flush logs, push langfuse generation events (skip nếu `SKIP_LANGFUSE=1`) |
-| `observability` | `session-cleanup.sh` | SessionEnd | Final cleanup |
-| `observability` | `langfuse-score-detector.sh` | UserPromptSubmit | Detect scoring opportunity. Bypass: `SKIP_HOOKS=1` \| `SKIP_LANGFUSE=1` \| `SKIP_SCORE_DETECTOR=1` |
-| `observability` | `langfuse-push-score.sh` | (utility — manual) | Flush queued score events (user-invoked, KHÔNG gate bằng SKIP_LANGFUSE) |
-| `observability` | `langfuse-score-accuracy-efficiency.sh` | (utility — manual) | Compute scoring metric (user-invoked) |
 | `bmad-workflows` | `enforce-bmad-config-priority.sh` | UserPromptSubmit | Ép đọc `_bmad/*` ưu tiên consumer (`./_bmad/`) > plugin (`${CLAUDE_PLUGIN_ROOT}/_bmad/`). Bypass: `SKIP_BMAD_PRIORITY=1` |
 | `bmad-workflows` | `enforce-bmad-output-consistency.sh` | UserPromptSubmit | Gate BMAD agent activation ≤ 250 tokens |
 | `bmad-workflows` | `enforce-bmad-agent-scope.sh` | PreToolUse Write\|Edit | Block khi BMAD agent active làm SAI ROLE (pm/sm/architect/ux-designer/tech-writer không edit code; dev không edit PRD/architecture; tea chỉ test code + test-design). Bypass: `SKIP_BMAD_SCOPE=1` |
@@ -182,16 +169,15 @@ Test fail ≠ test sai. KHÔNG sửa test để pass khi BE sai → log bug theo
      "enabledPlugins": {
        "bmad-workflows@qa-harness": true,
        "test-enforcement@qa-harness": true,
-       "playwright-qa-engineer@qa-harness": true,
-       "observability@qa-harness": true
+       "playwright-qa-engineer@qa-harness": true
      }
    }
    ```
-   (Thêm `cost-control` tuỳ nhu cầu. Trong `observability`, có thể disable chỉ phần Langfuse push bằng env `SKIP_LANGFUSE=1` — session log local vẫn chạy.)
+   (Thêm `cost-control` tuỳ nhu cầu.)
 2. Tạo `_bmad/bmm/config.yaml` ở consumer repo: `project_name`, `user_name`, `communication_language`, `output_folder`
 3. Tạo docs riêng cho consumer (`docs/PROJECT-STRUCTURE.md`, `docs/roadmap/`). Kiến trúc generic đã có sẵn trong `bmad-workflows/skills/qa-engineer/architecture.md`.
 4. (Optional) Tạo `.mcp.json` ở consumer root nếu cần MCP — auto-approve qua `enableAllProjectMcpServers: true`
-5. Verify hooks fire: chạy `claude` → kiểm `.claude/session-logs/` có entry mới
+5. Verify hooks fire: `claude --debug hooks`
 6. Smoke test: `/bmad:bmm:agents:dev` → verify activation ≤ 250 tokens
 
 ## 10. Output discipline (cost control — áp dụng mọi session)
@@ -235,5 +221,5 @@ Observed: trace 89fee3f7 waste ~$0.90 (12K tokens) cho narrate "thinking out lou
 - BMAD agent activation phải theo template — vi phạm bị `enforce-bmad-output-consistency.sh` flag
 - Output project (consumer Playwright suite) là **target**, KHÔNG tạo `src/`, `tests/`, `package.json` ở repo này
 - Khi update standards trong `plugins/bmad-workflows/skills/qa-test-case/` → version bump + ghi changelog, vì consumers downstream phụ thuộc
-- **`langfuse-helper.js`:** giờ single copy trong `observability/hooks/` (sau merge `session + langfuse` → `observability`). Granular bypass: `SKIP_LANGFUSE=1` chỉ chặn HTTP push, vẫn enqueue + archive local
 - **`_hook-span-emit.sh`:** mỗi plugin có hook đều có copy riêng — pattern identical
+- Plugin `observability` (session lifecycle + Langfuse telemetry, tạo `.claude/session-logs/` + cost-tracking files) đã bị **remove khỏi marketplace** — KHÔNG tái tạo hooks này trừ khi được yêu cầu lại
